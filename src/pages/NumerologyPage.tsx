@@ -105,19 +105,26 @@ export const NumerologyPage: React.FC = () => {
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
+      const data = payload[0].payload;
       return (
-        <div className="glass-morphism p-4 border border-mystic-gold/30 rounded-xl">
-          <p className="text-mystic-gold font-bold mb-1">{label}</p>
-          <p className="text-white text-sm">Chỉ số: <span className="font-bold">{payload[0].value}</span></p>
-          {payload[0].payload.interpretation && (
-            <p className="text-gray-400 text-xs mt-2 max-w-[200px] leading-relaxed">
-              {payload[0].payload.interpretation}
+        <div className="glass-morphism p-4 border border-mystic-gold/30 rounded-xl shadow-2xl">
+          <p className="text-mystic-gold font-serif font-bold mb-2 text-lg border-b border-white/10 pb-1">{label}</p>
+          <div className="space-y-1 mb-3">
+            <p className="text-white text-sm flex justify-between gap-4">
+              <span className="text-gray-400">Năm cá nhân:</span>
+              <span className="font-bold text-mystic-purple">Số {data.value}</span>
             </p>
-          )}
-          {payload[0].payload.meaning && (
-            <p className="text-gray-400 text-xs mt-2 max-w-[200px] leading-relaxed">
-              {payload[0].payload.meaning}
+            <p className="text-white text-sm flex justify-between gap-4">
+              <span className="text-gray-400">Mức độ năng lượng:</span>
+              <span className="font-bold text-emerald-400">{data.energy}%</span>
             </p>
+          </div>
+          {data.interpretation && (
+            <div className="text-gray-300 text-xs mt-2 max-w-[220px] leading-relaxed italic border-t border-white/5 pt-2">
+              {data.interpretation.length > 100 
+                ? data.interpretation.substring(0, 100) + "..." 
+                : data.interpretation}
+            </div>
           )}
         </div>
       );
@@ -518,12 +525,12 @@ export const NumerologyPage: React.FC = () => {
                                           className="cursor-pointer transition-all hover:r-8"
                                         />
                                         <text 
-                                          x={cx} y={cy - 15} 
+                                          x={cx} y={cy - 20} 
                                           textAnchor="middle" 
                                           fill={isCurrentYear ? "#facc15" : "#fff"} 
-                                          fontSize={isCurrentYear ? 16 : 12}
-                                          fontWeight={isCurrentYear ? "bold" : "normal"}
-                                          className="pointer-events-none font-serif"
+                                          fontSize={isCurrentYear ? 22 : 16}
+                                          fontWeight="bold"
+                                          className="pointer-events-none font-serif drop-shadow-lg"
                                         >
                                           {payload.value}
                                         </text>
@@ -558,6 +565,11 @@ export const NumerologyPage: React.FC = () => {
                                 </div>
                               </div>
                             ))}
+                          </div>
+                          <div className="mt-8 p-4 bg-white/5 rounded-xl border border-white/10">
+                            <p className="text-xs text-gray-400 leading-relaxed italic">
+                              <span className="text-mystic-gold font-bold">Lưu ý về Mức độ năng lượng:</span> Đây là chỉ số (0-100%) thể hiện cường độ rung động và khả năng xoay chuyển vận thế trong năm đó. Chỉ số càng cao, năng lượng hành động và gặt hái càng mạnh mẽ.
+                            </p>
                           </div>
                         </div>
 
@@ -645,51 +657,120 @@ export const NumerologyPage: React.FC = () => {
                       exit={{ opacity: 0, x: -20 }}
                       className="space-y-12"
                     >
-                      <div className="h-[400px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={result.pyramids}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                            <XAxis 
-                              dataKey="age" 
-                              stroke="#666" 
-                              fontSize={12} 
-                              tickLine={false} 
-                              axisLine={false} 
-                              label={{ value: 'Độ tuổi', position: 'insideBottom', offset: -5, fill: '#666' }}
-                            />
-                            <YAxis stroke="#666" fontSize={12} tickLine={false} axisLine={false} domain={[0, 12]} />
-                            <Tooltip content={<CustomTooltip />} />
-                            <Line 
-                              type="stepAfter" 
-                              dataKey="value" 
-                              stroke="#facc15" 
-                              strokeWidth={3}
-                              dot={{ r: 6, fill: '#facc15', strokeWidth: 2, stroke: '#0a0a0f' }}
-                              activeDot={{ r: 8, strokeWidth: 0 }}
-                              animationDuration={2000}
-                            />
-                          </LineChart>
-                        </ResponsiveContainer>
+                      {/* Visual Pyramid Chart */}
+                      <div className="relative w-full bg-black/40 rounded-3xl border border-white/5 p-8 overflow-hidden">
+                        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-mystic-gold/5 blur-[120px] rounded-full" />
+                        </div>
+
+                        <div className="relative z-10 text-center mb-12">
+                          <h3 className="text-2xl font-serif font-bold text-mystic-gold flex items-center justify-center gap-3">
+                            <Pyramid className="w-6 h-6" /> 4 Đỉnh Cao Kim Tự Tháp
+                          </h3>
+                          <p className="text-gray-400 text-sm mt-2">Đại diện cho 27 năm rực rỡ nhất trong cuộc đời</p>
+                        </div>
+
+                        <div className="relative h-[450px] w-full max-w-3xl mx-auto">
+                          <svg viewBox="0 0 800 500" className="w-full h-full drop-shadow-2xl">
+                            {/* Connection Lines */}
+                            <g stroke="rgba(255,255,255,0.1)" strokeWidth="2" strokeDasharray="5,5">
+                              {/* Base to Level 1 */}
+                              <line x1="150" y1="450" x2="275" y2="300" />
+                              <line x1="400" y1="450" x2="275" y2="300" />
+                              <line x1="400" y1="450" x2="525" y2="300" />
+                              <line x1="650" y1="450" x2="525" y2="300" />
+                              {/* Level 1 to Level 2 */}
+                              <line x1="275" y1="300" x2="400" y2="150" />
+                              <line x1="525" y1="300" x2="400" y2="150" />
+                              {/* Level 2 to Level 3 */}
+                              <line x1="400" y1="150" x2="400" y2="50" />
+                            </g>
+
+                            {/* Base Nodes */}
+                            {[
+                              { x: 150, y: 450, label: 'Tháng', val: new Date(birthDate).getMonth() + 1 },
+                              { x: 400, y: 450, label: 'Ngày', val: new Date(birthDate).getDate() },
+                              { x: 650, y: 450, label: 'Năm', val: String(new Date(birthDate).getFullYear()).split('').reduce((a,b) => a + Number(b), 0) }
+                            ].map((node, i) => (
+                              <g key={`base-${i}`}>
+                                <circle cx={node.x} cy={node.y} r="30" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.2)" />
+                                <text x={node.x} y={node.y + 5} textAnchor="middle" fill="#666" fontSize="18" fontWeight="bold">{node.val > 9 && node.val !== 11 && node.val !== 22 ? String(node.val).split('').reduce((a,b) => a + Number(b), 0) : node.val}</text>
+                                <text x={node.x} y={node.y + 50} textAnchor="middle" fill="#444" fontSize="12" letterSpacing="2">{node.label.toUpperCase()}</text>
+                              </g>
+                            ))}
+
+                            {/* Peak Nodes */}
+                            {result.pyramids.map((peak, i) => {
+                              const coords = [
+                                { x: 275, y: 300 }, // Peak 1
+                                { x: 525, y: 300 }, // Peak 2
+                                { x: 400, y: 150 }, // Peak 3
+                                { x: 400, y: 50 }   // Peak 4
+                              ];
+                              const { x, y } = coords[i];
+                              const isCurrent = peak.age >= 2026 - new Date(birthDate).getFullYear() && (i === 0 || peak.age > result.pyramids[i-1].age);
+                              
+                              return (
+                                <g key={`peak-${i}`} className="cursor-pointer group">
+                                  <defs>
+                                    <filter id={`glow-${i}`}>
+                                      <feGaussianBlur stdDeviation="5" result="coloredBlur"/>
+                                      <feMerge>
+                                        <feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/>
+                                      </feMerge>
+                                    </filter>
+                                  </defs>
+                                  <circle 
+                                    cx={x} cy={y} r="35" 
+                                    fill={i === 3 ? "rgba(250,204,21,0.1)" : "rgba(126,34,206,0.1)"} 
+                                    stroke={i === 3 ? "#facc15" : "#7e22ce"} 
+                                    strokeWidth="3"
+                                    filter={`url(#glow-${i})`}
+                                  />
+                                  <text x={x} y={y + 8} textAnchor="middle" fill="#fff" fontSize="24" fontWeight="black">{peak.value}</text>
+                                  <text x={x + 50} y={y} textAnchor="start" fill="#888" fontSize="12">Đỉnh {i+1}</text>
+                                  <text x={x + 50} y={y + 15} textAnchor="start" fill="#facc15" fontSize="14" fontWeight="bold">{peak.age} tuổi</text>
+                                </g>
+                              );
+                            })}
+                          </svg>
+                        </div>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                      {/* Detailed Interpretations */}
+                      <div className="grid grid-cols-1 gap-8">
                         {result.pyramids.map((item, idx) => (
-                          <div key={idx} className="p-8 rounded-3xl bg-white/5 border border-mystic-gold/20 relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                              <Pyramid className="w-24 h-24 text-mystic-gold" />
+                          <motion.div 
+                            key={idx}
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            className="p-8 rounded-3xl bg-white/5 border border-white/10 relative overflow-hidden group hover:border-mystic-gold/30 transition-all"
+                          >
+                            <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
+                              <Pyramid className="w-32 h-32 text-mystic-gold" />
                             </div>
                             <div className="relative z-10">
-                              <div className="flex items-center gap-4 mb-4">
-                                <div className="w-12 h-12 rounded-2xl bg-mystic-gold/20 flex items-center justify-center text-mystic-gold font-serif text-2xl font-bold">
-                                  {item.value}
+                              <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
+                                <div className="w-20 h-20 rounded-2xl bg-mystic-gold flex flex-col items-center justify-center text-mystic-dark shadow-xl shadow-mystic-gold/20">
+                                  <span className="text-[10px] uppercase font-bold tracking-tighter opacity-70 leading-none mb-1">Đỉnh</span>
+                                  <span className="text-4xl font-serif font-black leading-none">{item.value}</span>
                                 </div>
                                 <div>
-                                  <p className="text-mystic-gold text-xs uppercase tracking-widest font-bold">Đỉnh cao số {idx + 1}</p>
-                                  <p className="text-white font-bold">Độ tuổi: {item.age}</p>
+                                  <div className="flex items-center gap-3 mb-1">
+                                    <h4 className="text-2xl font-serif font-bold text-white">Giai Đoạn Đỉnh Cao Thứ {idx + 1}</h4>
+                                    <span className="px-3 py-1 bg-mystic-gold/20 text-mystic-gold rounded-lg text-xs font-bold uppercase tracking-widest">
+                                      {item.age} Tuổi
+                                    </span>
+                                  </div>
+                                  <p className="text-mystic-gold font-medium">Con số rung động: {item.value}</p>
                                 </div>
                               </div>
-                              <p className="text-gray-400 leading-relaxed">{item.meaning}</p>
+                              <div className="markdown-body prose prose-invert prose-sm max-w-none text-gray-300 leading-relaxed">
+                                <ReactMarkdown>{item.meaning}</ReactMarkdown>
+                              </div>
                             </div>
-                          </div>
+                          </motion.div>
                         ))}
                       </div>
                     </motion.div>

@@ -170,7 +170,7 @@ export const SYSTEM_PROMPTS = {
       { "year": 2026, "value": 5, "interpretation": "Luận giải CHI TIẾT và CHUYÊN SÂU cho năm này. Phải kết nối với Số Chủ Đạo và các chỉ số lõi của người đó để đưa ra lời khuyên cá nhân hóa. Độ dài khoảng 150-200 từ." }
     ],
     "pyramids": [
-      { "age": 27, "value": 3, "meaning": "Ý nghĩa đỉnh cao này" }
+      { "age": 27, "value": 3, "meaning": "Luận giải CHUYÊN SÂU và CHI TIẾT về đỉnh cao này. Phải phân tích ý nghĩa của con số đỉnh cao trong bối cảnh độ tuổi và các chỉ số lõi. Độ dài khoảng 150-200 từ, trình bày khoa học." }
     ]
   }
 
