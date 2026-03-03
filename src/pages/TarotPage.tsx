@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CreditCard, Sparkles, RefreshCw, Loader2 } from 'lucide-react';
+import { CreditCard, Sparkles, RefreshCw, Loader2, History as HistoryIcon } from 'lucide-react';
 import { ai, MODELS, SYSTEM_PROMPTS, safeGenerateContent } from '../lib/gemini';
 import ReactMarkdown from 'react-markdown';
 import { TAROT_CARDS_DATA, TarotCard } from '../constants/tarotData';
 import { TarotFlipCard } from '../components/TarotFlipCard';
 import { cn } from '../lib/utils';
+import { HistorySidebar } from '../components/HistorySidebar';
+import { saveHistory, HistoryItem } from '../lib/history';
 
 export const TarotPage: React.FC = () => {
   const [mode, setMode] = useState<'single' | 'triple' | null>(null);
@@ -16,6 +18,7 @@ export const TarotPage: React.FC = () => {
   const [revealedCount, setRevealedCount] = useState(0);
   const [question, setQuestion] = useState('');
   const [topic, setTopic] = useState('Tổng quan');
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   const topics = ['Tổng quan', 'Tình duyên', 'Sự nghiệp', 'Tài chính', 'Sức khỏe', 'Mối quan hệ'];
 
@@ -58,7 +61,21 @@ export const TarotPage: React.FC = () => {
         model: MODELS.TEXT,
         contents: [{ parts: [{ text: SYSTEM_PROMPTS.TAROT + "\n\n" + prompt }] }],
       });
-      setInterpretation(response.text || "Không thể giải mã.");
+      const resultText = response.text || "Không thể giải mã.";
+      setInterpretation(resultText);
+      
+      // Save to history
+      saveHistory({
+        type: 'tarot',
+        title: question || `Xem Tarot (${topic})`,
+        result: {
+          mode,
+          topic,
+          question,
+          interpretation: resultText,
+          cards: selectedCards.map(c => ({ name: c.card.name_en, isReversed: c.isReversed }))
+        }
+      });
     } catch (err: any) {
       console.error(err);
       if (err?.message?.includes("429") || err?.message?.includes("RESOURCE_EXHAUSTED")) {
@@ -71,8 +88,31 @@ export const TarotPage: React.FC = () => {
     }
   };
 
+  const handleSelectHistory = (item: HistoryItem) => {
+    setQuestion(item.result.question || '');
+    setTopic(item.result.topic || 'Tổng quan');
+    setMode(item.result.mode);
+    setInterpretation(item.result.interpretation);
+    // Find cards from data
+    const restoredCards = item.result.cards.map((c: any) => ({
+      card: TAROT_CARDS_DATA.find(tc => tc.name_en === c.name) || TAROT_CARDS_DATA[0],
+      isReversed: c.isReversed
+    }));
+    setSelectedCards(restoredCards);
+    setRevealedCount(restoredCards.length);
+  };
+
   return (
     <div className="pt-32 pb-20 px-4 max-w-7xl mx-auto">
+      <div className="flex justify-end mb-4">
+        <button
+          onClick={() => setIsHistoryOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-full border border-white/10 transition-all text-mystic-gold text-sm font-bold uppercase tracking-widest"
+        >
+          <HistoryIcon className="w-4 h-4" /> Lịch sử
+        </button>
+      </div>
+
       <div className="text-center mb-12">
         <h1 className="text-4xl md:text-5xl font-serif font-bold mb-4">Bói Bài Tarot</h1>
         <p className="text-mystic-gold tracking-[0.2em] uppercase text-sm">
@@ -231,6 +271,12 @@ export const TarotPage: React.FC = () => {
           </AnimatePresence>
         </div>
       )}
+      <HistorySidebar
+        type="tarot"
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        onSelect={handleSelectHistory}
+      />
     </div>
   );
 };

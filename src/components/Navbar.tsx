@@ -6,10 +6,10 @@ import { cn } from '../lib/utils';
 
 const navItems = [
   { name: 'Trang chủ', path: '/', icon: Home },
-  { name: 'Xem Nhân Tướng', path: '/physiognomy', icon: User },
-  { name: 'Xem Bói Tarot', path: '/tarot', icon: CreditCard },
-  { name: 'Gieo Quẻ', path: '/iching', icon: Hash },
-  { name: 'Gieo Đài', path: '/divination', icon: Coins },
+  { name: 'Nhân Tướng', path: '/physiognomy', icon: User },
+  { name: 'Tarot', path: '/tarot', icon: CreditCard },
+  { name: 'Gieo Quẻ Kinh Dịch', path: '/iching', icon: Hash },
+  { name: 'Gieo Đài Âm Dương', path: '/divination', icon: Coins },
 ];
 
 export const Navbar: React.FC = () => {

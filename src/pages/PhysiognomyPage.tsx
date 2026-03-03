@@ -1,15 +1,18 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, Camera, Sparkles, Loader2, Save, Share2, User, RefreshCw } from 'lucide-react';
+import { Upload, Camera, Sparkles, Loader2, Save, Share2, User, RefreshCw, History as HistoryIcon } from 'lucide-react';
 import { ai, MODELS, SYSTEM_PROMPTS, safeGenerateContent } from '../lib/gemini';
 import { cn } from '../lib/utils';
 import ReactMarkdown from 'react-markdown';
+import { HistorySidebar } from '../components/HistorySidebar';
+import { saveHistory, HistoryItem, getHistory } from '../lib/history';
 
 export const PhysiognomyPage: React.FC = () => {
   const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -31,25 +34,52 @@ export const PhysiognomyPage: React.FC = () => {
     setError(null);
 
     try {
+      const history = getHistory('physiognomy').slice(0, 2);
       const base64Data = image.split(',')[1];
-      const response = await safeGenerateContent({
-        model: MODELS.VISION,
-        contents: [
-          {
-            parts: [
-              { text: SYSTEM_PROMPTS.PHYSIOGNOMY },
-              {
-                inlineData: {
-                  mimeType: "image/jpeg",
-                  data: base64Data,
-                },
-              },
-            ],
-          },
-        ],
+      
+      const parts: any[] = [
+        { text: SYSTEM_PROMPTS.PHYSIOGNOMY },
+      ];
+
+      if (history.length > 0) {
+        parts.push({ text: "Dưới đây là các hình ảnh và luận giải trước đó để bạn đối chiếu và đảm bảo tính nhất quán (nếu là cùng một người):" });
+        history.forEach((item, index) => {
+          const histBase64 = item.result.image.split(',')[1];
+          parts.push({
+            inlineData: {
+              mimeType: "image/jpeg",
+              data: histBase64,
+            },
+          });
+          parts.push({ text: `Luận giải trước đó cho ảnh ${index + 1}: ${item.result.interpretation}` });
+        });
+        parts.push({ text: "Bây giờ, hãy phân tích hình ảnh mới này:" });
+      }
+
+      parts.push({
+        inlineData: {
+          mimeType: "image/jpeg",
+          data: base64Data,
+        },
       });
 
-      setResult(response.text || "Không thể phân tích khuôn mặt. Vui lòng thử lại.");
+      const response = await safeGenerateContent({
+        model: MODELS.VISION,
+        contents: [{ parts }],
+      });
+
+      const resultText = response.text || "Không thể phân tích khuôn mặt. Vui lòng thử lại.";
+      setResult(resultText);
+
+      // Save to history
+      saveHistory({
+        type: 'physiognomy',
+        title: `Xem Nhân Tướng (${new Date().toLocaleDateString('vi-VN')})`,
+        result: {
+          image,
+          interpretation: resultText
+        }
+      });
     } catch (err: any) {
       console.error(err);
       if (err?.message?.includes("429") || err?.message?.includes("RESOURCE_EXHAUSTED")) {
@@ -62,8 +92,22 @@ export const PhysiognomyPage: React.FC = () => {
     }
   };
 
+  const handleSelectHistory = (item: HistoryItem) => {
+    setImage(item.result.image);
+    setResult(item.result.interpretation);
+  };
+
   return (
     <div className="pt-32 pb-20 px-4 max-w-6xl mx-auto">
+      <div className="flex justify-end mb-4">
+        <button
+          onClick={() => setIsHistoryOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-full border border-white/10 transition-all text-mystic-gold text-sm font-bold uppercase tracking-widest"
+        >
+          <HistoryIcon className="w-4 h-4" /> Lịch sử
+        </button>
+      </div>
+
       <div className="text-center mb-12">
         <motion.h1 
           initial={{ opacity: 0, y: -20 }}
@@ -151,6 +195,11 @@ export const PhysiognomyPage: React.FC = () => {
                 </div>
                 <h3 className="text-2xl font-serif mb-2">Đang kết nối với kiến thức cổ xưa</h3>
                 <p className="text-gray-500">AI đang phân tích từng đường nét trên khuôn mặt bạn...</p>
+                {getHistory('physiognomy').length > 0 && (
+                  <p className="text-mystic-gold/60 text-xs mt-4 animate-pulse uppercase tracking-[0.2em]">
+                    Đang đối chiếu với dữ liệu lịch sử để đảm bảo tính nhất quán...
+                  </p>
+                )}
               </motion.div>
             ) : error ? (
               <motion.div
@@ -211,6 +260,12 @@ export const PhysiognomyPage: React.FC = () => {
           </AnimatePresence>
         </div>
       </div>
+      <HistorySidebar
+        type="physiognomy"
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        onSelect={handleSelectHistory}
+      />
     </div>
   );
 };

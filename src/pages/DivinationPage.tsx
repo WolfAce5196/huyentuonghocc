@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Coins, Sparkles, RefreshCw, Loader2 } from 'lucide-react';
+import { Coins, Sparkles, RefreshCw, Loader2, History as HistoryIcon } from 'lucide-react';
 import { ai, MODELS, safeGenerateContent } from '../lib/gemini';
 import ReactMarkdown from 'react-markdown';
 import confetti from 'canvas-confetti';
+import { HistorySidebar } from '../components/HistorySidebar';
+import { saveHistory, HistoryItem } from '../lib/history';
 
 export const DivinationPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -13,6 +15,7 @@ export const DivinationPage: React.FC = () => {
   const [question, setQuestion] = useState('');
   const [tossCount, setTossCount] = useState(0);
   const [resultType, setResultType] = useState<string | null>(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   const tossCoins = async () => {
     if (tossCount >= 3) {
@@ -63,7 +66,21 @@ export const DivinationPage: React.FC = () => {
         model: MODELS.TEXT,
         contents: [{ parts: [{ text: prompt }] }],
       });
-      setResult(response.text || "Không thể giải đài.");
+      const resultText = response.text || "Không thể giải đài.";
+      setResult(resultText);
+
+      // Save to history
+      saveHistory({
+        type: 'divination',
+        title: question || `Gieo Đài Âm Dương (${typeName})`,
+        result: {
+          question,
+          tossCount: tossCount + 1,
+          coins: newCoins,
+          resultType: typeName,
+          interpretation: resultText
+        }
+      });
     } catch (err: any) {
       console.error(err);
       if (err?.message?.includes("429") || err?.message?.includes("RESOURCE_EXHAUSTED")) {
@@ -76,8 +93,25 @@ export const DivinationPage: React.FC = () => {
     }
   };
 
+  const handleSelectHistory = (item: HistoryItem) => {
+    setQuestion(item.result.question || '');
+    setTossCount(item.result.tossCount);
+    setCoins(item.result.coins);
+    setResultType(item.result.resultType);
+    setResult(item.result.interpretation);
+  };
+
   return (
     <div className="pt-32 pb-20 px-4 max-w-4xl mx-auto">
+      <div className="flex justify-end mb-4">
+        <button
+          onClick={() => setIsHistoryOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-full border border-white/10 transition-all text-mystic-gold text-sm font-bold uppercase tracking-widest"
+        >
+          <HistoryIcon className="w-4 h-4" /> Lịch sử
+        </button>
+      </div>
+
       <div className="text-center mb-12">
         <h1 className="text-4xl md:text-5xl font-serif font-bold mb-4">Gieo Đài Âm Dương</h1>
         <p className="text-mystic-gold tracking-[0.2em] uppercase text-sm">
@@ -217,6 +251,12 @@ export const DivinationPage: React.FC = () => {
           )}
         </AnimatePresence>
       </div>
+      <HistorySidebar
+        type="divination"
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        onSelect={handleSelectHistory}
+      />
     </div>
   );
 };

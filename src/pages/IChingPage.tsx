@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Hash, Sparkles, RefreshCw, Loader2 } from 'lucide-react';
+import { Hash, Sparkles, RefreshCw, Loader2, History as HistoryIcon } from 'lucide-react';
 import { ai, MODELS, SYSTEM_PROMPTS, safeGenerateContent } from '../lib/gemini';
 import ReactMarkdown from 'react-markdown';
+import { HistorySidebar } from '../components/HistorySidebar';
+import { saveHistory, HistoryItem } from '../lib/history';
 
 export const IChingPage: React.FC = () => {
   const [lines, setLines] = useState<number[]>([]);
@@ -15,6 +17,7 @@ export const IChingPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [question, setQuestion] = useState('');
   const [startTime, setStartTime] = useState<string | null>(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   const castLine = () => {
     if (lines.length >= 6) return;
@@ -60,6 +63,20 @@ export const IChingPage: React.FC = () => {
       setResult(data.interpretation || "Không thể giải quẻ.");
       setHexNumber(data.hexagramNumber || null);
       setHexName(data.hexagramName || null);
+
+      // Save to history
+      saveHistory({
+        type: 'iching',
+        title: question || `Gieo Quẻ Kinh Dịch (${data.hexagramName})`,
+        result: {
+          question,
+          startTime,
+          lines: finalLines,
+          hexNumber: data.hexagramNumber,
+          hexName: data.hexagramName,
+          interpretation: data.interpretation
+        }
+      });
 
       // Generate AI Illustration
       if (data.hexagramNumber && data.hexagramName) {
@@ -114,8 +131,27 @@ export const IChingPage: React.FC = () => {
     setStartTime(null);
   };
 
+  const handleSelectHistory = (item: HistoryItem) => {
+    setQuestion(item.result.question || '');
+    setStartTime(item.result.startTime);
+    setLines(item.result.lines);
+    setHexNumber(item.result.hexNumber);
+    setHexName(item.result.hexName);
+    setResult(item.result.interpretation);
+    setGeneratedImageUrl(null);
+  };
+
   return (
     <div className="pt-32 pb-20 px-4 max-w-4xl mx-auto">
+      <div className="flex justify-end mb-4">
+        <button
+          onClick={() => setIsHistoryOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-full border border-white/10 transition-all text-mystic-gold text-sm font-bold uppercase tracking-widest"
+        >
+          <HistoryIcon className="w-4 h-4" /> Lịch sử
+        </button>
+      </div>
+
       <div className="text-center mb-12">
         <h1 className="text-4xl md:text-5xl font-serif font-bold mb-4">Gieo Quẻ Kinh Dịch</h1>
         <p className="text-mystic-gold tracking-[0.2em] uppercase text-sm">
@@ -309,6 +345,12 @@ export const IChingPage: React.FC = () => {
           </AnimatePresence>
         </div>
       </div>
+      <HistorySidebar
+        type="iching"
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        onSelect={handleSelectHistory}
+      />
     </div>
   );
 };
