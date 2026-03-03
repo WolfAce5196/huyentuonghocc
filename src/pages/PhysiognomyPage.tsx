@@ -1,9 +1,10 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, Camera, Sparkles, Loader2, Save, Share2, User, RefreshCw, History as HistoryIcon } from 'lucide-react';
-import { ai, MODELS, SYSTEM_PROMPTS, safeGenerateContent } from '../lib/gemini';
+import { ai, MODELS, SYSTEM_PROMPTS, safeGenerateContent, getCurrentContext } from '../lib/gemini';
 import { cn } from '../lib/utils';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { HistorySidebar } from '../components/HistorySidebar';
 import { saveHistory, HistoryItem, getHistory } from '../lib/history';
 
@@ -38,7 +39,7 @@ export const PhysiognomyPage: React.FC = () => {
       const base64Data = image.split(',')[1];
       
       const parts: any[] = [
-        { text: SYSTEM_PROMPTS.PHYSIOGNOMY },
+        { text: SYSTEM_PROMPTS.PHYSIOGNOMY + "\n\n" + getCurrentContext() },
       ];
 
       if (history.length > 0) {
@@ -220,9 +221,9 @@ export const PhysiognomyPage: React.FC = () => {
                 key="result"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="glass-morphism p-8 rounded-3xl border-mystic-gold/30 h-full overflow-y-auto max-h-[800px] markdown-body"
+                className="glass-morphism p-8 rounded-3xl border-mystic-gold/30 h-full overflow-y-auto max-h-[800px]"
               >
-                <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center justify-between mb-8 border-b border-mystic-gold/20 pb-4">
                   <h2 className="text-2xl font-serif font-bold text-mystic-gold">Kết Quả Luận Giải</h2>
                   <div className="flex gap-2">
                     <button className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
@@ -234,8 +235,8 @@ export const PhysiognomyPage: React.FC = () => {
                   </div>
                 </div>
                 
-                <div className="prose prose-invert max-w-none">
-                  <ReactMarkdown>{result}</ReactMarkdown>
+                <div className="markdown-body">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{result}</ReactMarkdown>
                 </div>
               </motion.div>
             ) : (

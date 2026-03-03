@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CreditCard, Sparkles, RefreshCw, Loader2, History as HistoryIcon } from 'lucide-react';
-import { ai, MODELS, SYSTEM_PROMPTS, safeGenerateContent } from '../lib/gemini';
+import { ai, MODELS, SYSTEM_PROMPTS, safeGenerateContent, getCurrentContext } from '../lib/gemini';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { TAROT_CARDS_DATA, TarotCard } from '../constants/tarotData';
 import { TarotFlipCard } from '../components/TarotFlipCard';
 import { cn } from '../lib/utils';
@@ -59,7 +60,7 @@ export const TarotPage: React.FC = () => {
 
       const response = await safeGenerateContent({
         model: MODELS.TEXT,
-        contents: [{ parts: [{ text: SYSTEM_PROMPTS.TAROT + "\n\n" + prompt }] }],
+        contents: [{ parts: [{ text: SYSTEM_PROMPTS.TAROT + "\n\n" + getCurrentContext() }, { text: prompt }] }],
       });
       const resultText = response.text || "Không thể giải mã.";
       setInterpretation(resultText);
@@ -224,7 +225,7 @@ export const TarotPage: React.FC = () => {
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="glass-morphism p-8 md:p-12 rounded-3xl border-mystic-gold/30 max-w-5xl mx-auto markdown-body shadow-[0_0_50px_rgba(126,34,206,0.1)]"
+                className="glass-morphism p-8 md:p-12 rounded-3xl border-mystic-gold/30 max-w-5xl mx-auto shadow-[0_0_50px_rgba(126,34,206,0.1)]"
               >
                 <div className="flex items-center gap-4 mb-8 border-b border-mystic-gold/20 pb-6">
                   <div className="w-12 h-12 rounded-full bg-mystic-gold/10 flex items-center justify-center">
@@ -233,8 +234,8 @@ export const TarotPage: React.FC = () => {
                   <h2 className="text-3xl font-serif font-bold text-mystic-gold">Luận Giải Chi Tiết</h2>
                 </div>
                 
-                <div className="prose prose-invert max-w-none prose-p:text-gray-300 prose-headings:text-mystic-gold prose-strong:text-mystic-purple">
-                  <ReactMarkdown>{interpretation}</ReactMarkdown>
+                <div className="markdown-body">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{interpretation}</ReactMarkdown>
                 </div>
                 
                 <div className="mt-12 pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">

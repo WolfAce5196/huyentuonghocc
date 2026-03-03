@@ -2,7 +2,7 @@
 export interface HistoryItem {
   id: string;
   timestamp: number;
-  type: 'physiognomy' | 'tarot' | 'iching' | 'divination';
+  type: 'physiognomy' | 'tarot' | 'iching' | 'divination' | 'numerology';
   title: string;
   result: any;
 }

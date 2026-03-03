@@ -6,8 +6,9 @@ import { cn } from '../lib/utils';
 
 const navItems = [
   { name: 'Trang chủ', path: '/', icon: Home },
-  { name: 'Nhân Tướng', path: '/physiognomy', icon: User },
-  { name: 'Tarot', path: '/tarot', icon: CreditCard },
+  { name: 'Xem Nhân Tướng', path: '/physiognomy', icon: User },
+  { name: 'Bốc Bài Tarot', path: '/tarot', icon: CreditCard },
+  { name: 'Thần Số Học', path: '/numerology', icon: Hash },
   { name: 'Gieo Quẻ Kinh Dịch', path: '/iching', icon: Hash },
   { name: 'Gieo Đài Âm Dương', path: '/divination', icon: Coins },
 ];

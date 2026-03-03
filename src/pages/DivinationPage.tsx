@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Coins, Sparkles, RefreshCw, Loader2, History as HistoryIcon } from 'lucide-react';
-import { ai, MODELS, safeGenerateContent } from '../lib/gemini';
+import { ai, MODELS, SYSTEM_PROMPTS, safeGenerateContent, getCurrentContext } from '../lib/gemini';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import confetti from 'canvas-confetti';
 import { HistorySidebar } from '../components/HistorySidebar';
 import { saveHistory, HistoryItem } from '../lib/history';
@@ -64,7 +65,7 @@ export const DivinationPage: React.FC = () => {
 
       const response = await safeGenerateContent({
         model: MODELS.TEXT,
-        contents: [{ parts: [{ text: prompt }] }],
+        contents: [{ parts: [{ text: SYSTEM_PROMPTS.DIVINATION + "\n\n" + getCurrentContext() }, { text: prompt }] }],
       });
       const resultText = response.text || "Không thể giải đài.";
       setResult(resultText);
@@ -214,14 +215,14 @@ export const DivinationPage: React.FC = () => {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="glass-morphism p-8 rounded-3xl border-mystic-gold/30 w-full markdown-body"
+              className="glass-morphism p-8 rounded-3xl border-mystic-gold/30 w-full"
             >
-              <div className="flex items-center gap-3 mb-6">
+              <div className="flex items-center gap-3 mb-6 border-b border-mystic-gold/20 pb-4">
                 <Sparkles className="w-6 h-6 text-mystic-gold" />
                 <h2 className="text-2xl font-serif font-bold text-mystic-gold">Lời Giải Đài</h2>
               </div>
-              <div className="prose prose-invert max-w-none">
-                <ReactMarkdown>{result}</ReactMarkdown>
+              <div className="markdown-body">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{result}</ReactMarkdown>
               </div>
               <button
                 onClick={() => { setCoins([]); setResult(null); setResultType(null); }}

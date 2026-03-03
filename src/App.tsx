@@ -7,6 +7,7 @@ import { PhysiognomyPage } from './pages/PhysiognomyPage';
 import { TarotPage } from './pages/TarotPage';
 import { IChingPage } from './pages/IChingPage';
 import { DivinationPage } from './pages/DivinationPage';
+import { NumerologyPage } from './pages/NumerologyPage';
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
             <Route path="/tarot" element={<TarotPage />} />
             <Route path="/iching" element={<IChingPage />} />
             <Route path="/divination" element={<DivinationPage />} />
+            <Route path="/numerology" element={<NumerologyPage />} />
           </Routes>
         </main>
         

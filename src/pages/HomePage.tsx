@@ -61,12 +61,13 @@ export const HomePage: React.FC = () => {
             Khám phá bí ẩn vận mệnh qua nhân tướng, bài Tarot, Kinh Dịch và thuật âm dương cổ truyền.
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 px-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 px-4">
             {[
-              { title: 'Nhân Tướng', desc: 'Đọc vị khuôn mặt qua AI Vision', path: '/physiognomy', color: 'purple' },
-              { title: 'Tarot', desc: 'Giải mã 78 lá bài huyền bí', path: '/tarot', color: 'gold' },
-              { title: 'Gieo Quẻ Kinh Dịch', desc: '64 quẻ Kinh Dịch cổ điển', path: '/iching', color: 'purple' },
-              { title: 'Gieo Đài Âm Dương', desc: 'Âm Dương dân gia Việt Nam', path: '/divination', color: 'gold' },
+              { title: 'Xem Nhân Tướng', desc: 'Đọc vị khuôn mặt qua AI Vision', path: '/physiognomy', color: 'purple' },
+              { title: 'Bốc Bài Tarot', desc: 'Giải mã 78 lá bài huyền bí', path: '/tarot', color: 'gold' },
+              { title: 'Thần Số Học', desc: 'Khám phá con số định mệnh', path: '/numerology', color: 'purple' },
+              { title: 'Gieo Quẻ Kinh Dịch', desc: '64 quẻ Kinh Dịch cổ điển', path: '/iching', color: 'gold' },
+              { title: 'Gieo Đài Âm Dương', desc: 'Âm Dương dân gia Việt Nam', path: '/divination', color: 'purple' },
             ].map((item, idx) => (
               <Link key={idx} to={item.path} className="group">
                 <motion.div

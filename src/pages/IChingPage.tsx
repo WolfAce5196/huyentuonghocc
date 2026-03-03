@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Hash, Sparkles, RefreshCw, Loader2, History as HistoryIcon } from 'lucide-react';
-import { ai, MODELS, SYSTEM_PROMPTS, safeGenerateContent } from '../lib/gemini';
+import { ai, MODELS, SYSTEM_PROMPTS, safeGenerateContent, getCurrentContext } from '../lib/gemini';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { HistorySidebar } from '../components/HistorySidebar';
 import { saveHistory, HistoryItem } from '../lib/history';
 
@@ -55,7 +56,7 @@ export const IChingPage: React.FC = () => {
 
       const response = await safeGenerateContent({
         model: MODELS.TEXT,
-        contents: [{ parts: [{ text: SYSTEM_PROMPTS.ICHING + "\n\n" + prompt }] }],
+        contents: [{ parts: [{ text: SYSTEM_PROMPTS.ICHING + "\n\n" + getCurrentContext() + "\n\n" + prompt }] }],
         config: { responseMimeType: "application/json" }
       });
       
@@ -254,9 +255,9 @@ export const IChingPage: React.FC = () => {
                 key="result"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="glass-morphism p-8 rounded-3xl border-mystic-gold/30 h-full overflow-y-auto max-h-[600px] markdown-body"
+                className="glass-morphism p-8 rounded-3xl border-mystic-gold/30 h-full overflow-y-auto max-h-[600px]"
               >
-                <div className="prose prose-invert max-w-none">
+                <div className="markdown-body">
                   {hexNumber && (
                     <div className="mb-10 flex flex-col items-center gap-6">
                       <motion.div 
@@ -310,7 +311,7 @@ export const IChingPage: React.FC = () => {
                       </div>
                     </div>
                   )}
-                  <ReactMarkdown>{result}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{result}</ReactMarkdown>
                 </div>
                 <button
                   onClick={reset}
