@@ -46,7 +46,6 @@ export const SYSTEM_PROMPTS = {
   4. Lục Phủ.
   
   Cấu trúc phản hồi (Markdown):
-  - Xác nhận đối tượng (Nếu có nhiều ảnh: Xác nhận xem là cùng 1 người hay người khác nhau).
   - Tổng quan về thần thái.
   - Phân tích chi tiết từng bộ phận (Trán, Mắt, Mũi, Miệng, Tai, Cằm).
   - Điểm số (1-10) cho các cung quan trọng.

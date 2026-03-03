@@ -34,7 +34,7 @@ export const PhysiognomyPage: React.FC = () => {
     setError(null);
 
     try {
-      const history = getHistory('physiognomy').slice(0, 2);
+      const history = getHistory('physiognomy');
       const base64Data = image.split(',')[1];
       
       const parts: any[] = [
@@ -42,7 +42,7 @@ export const PhysiognomyPage: React.FC = () => {
       ];
 
       if (history.length > 0) {
-        parts.push({ text: "Dưới đây là các hình ảnh và luận giải trước đó để bạn đối chiếu và đảm bảo tính nhất quán (nếu là cùng một người):" });
+        parts.push({ text: "DỮ LIỆU QUÁ KHỨ (CHỈ DÙNG ĐỂ ĐỐI CHIẾU NHẤT QUÁN, KHÔNG HIỂN THỊ TRONG KẾT QUẢ):" });
         history.forEach((item, index) => {
           const histBase64 = item.result.image.split(',')[1];
           parts.push({
@@ -51,9 +51,9 @@ export const PhysiognomyPage: React.FC = () => {
               data: histBase64,
             },
           });
-          parts.push({ text: `Luận giải trước đó cho ảnh ${index + 1}: ${item.result.interpretation}` });
+          parts.push({ text: `Luận giải quá khứ ${index + 1}: ${item.result.interpretation}` });
         });
-        parts.push({ text: "Bây giờ, hãy phân tích hình ảnh mới này:" });
+        parts.push({ text: "HÌNH ẢNH MỚI CẦN LUẬN GIẢI:" });
       }
 
       parts.push({
@@ -195,11 +195,6 @@ export const PhysiognomyPage: React.FC = () => {
                 </div>
                 <h3 className="text-2xl font-serif mb-2">Đang kết nối với kiến thức cổ xưa</h3>
                 <p className="text-gray-500">AI đang phân tích từng đường nét trên khuôn mặt bạn...</p>
-                {getHistory('physiognomy').length > 0 && (
-                  <p className="text-mystic-gold/60 text-xs mt-4 animate-pulse uppercase tracking-[0.2em]">
-                    Đang đối chiếu với dữ liệu lịch sử để đảm bảo tính nhất quán...
-                  </p>
-                )}
               </motion.div>
             ) : error ? (
               <motion.div
