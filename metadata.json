@@ -1,0 +1,5 @@
+{
+  "name": "Huyền Tướng Học",
+  "description": "Nền tảng nhân tướng học và bói toán huyền bí ứng dụng AI hiện đại.",
+  "requestFramePermissions": ["camera"]
+}
