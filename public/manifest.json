@@ -1,0 +1,17 @@
+{
+  "name": "Huyền Tướng Học",
+  "short_name": "Huyền Tướng",
+  "description": "Khám phá bí ẩn vận mệnh qua nhân tướng, Tarot và Kinh Dịch",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#D4AF37",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2314/2314859.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
