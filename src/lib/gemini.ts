@@ -167,7 +167,7 @@ export const SYSTEM_PROMPTS = {
     "weaknesses": ["Danh sách điểm yếu"],
     "advice": ["Danh sách lời khuyên"],
     "nineYearCycle": [
-      { "year": 2026, "value": 5, "interpretation": "Luận giải cho năm này" }
+      { "year": 2026, "value": 5, "interpretation": "Luận giải CHI TIẾT và CHUYÊN SÂU cho năm này. Phải kết nối với Số Chủ Đạo và các chỉ số lõi của người đó để đưa ra lời khuyên cá nhân hóa. Độ dài khoảng 150-200 từ." }
     ],
     "pyramids": [
       { "age": 27, "value": 3, "meaning": "Ý nghĩa đỉnh cao này" }

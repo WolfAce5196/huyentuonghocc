@@ -461,7 +461,7 @@ export const NumerologyPage: React.FC = () => {
 
                           <div className="flex-1">
                             <ResponsiveContainer width="100%" height="100%">
-                              <AreaChart data={cycleData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+                              <AreaChart data={cycleData} margin={{ top: 20, right: 30, left: 20, bottom: 0 }}>
                                 <defs>
                                   <linearGradient id="mysticGradient" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor="#7e22ce" stopOpacity={0.4}/>
@@ -577,9 +577,61 @@ export const NumerologyPage: React.FC = () => {
                               <p className="text-gray-400 text-xs">Vận thế hiện tại của bạn</p>
                             </div>
                           </div>
-                          <p className="text-gray-300 text-sm leading-relaxed italic">
-                            "{result.nineYearCycle[0].interpretation}"
-                          </p>
+                          <div className="markdown-body prose prose-invert prose-sm max-w-none">
+                            <ReactMarkdown>{result.nineYearCycle[0].interpretation}</ReactMarkdown>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Detailed Interpretations for All Years */}
+                      <div className="space-y-8">
+                        <div className="flex items-center gap-4">
+                          <div className="h-px flex-1 bg-white/10" />
+                          <h4 className="text-mystic-gold font-serif font-bold uppercase tracking-widest text-sm">
+                            Luận Giải Chi Tiết Toàn Chu Kỳ
+                          </h4>
+                          <div className="h-px flex-1 bg-white/10" />
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-6">
+                          {result.nineYearCycle.map((item, idx) => (
+                            <motion.div 
+                              key={idx}
+                              initial={{ opacity: 0, y: 20 }}
+                              whileInView={{ opacity: 1, y: 0 }}
+                              viewport={{ once: true }}
+                              className={`p-8 rounded-3xl border transition-all ${
+                                item.year === 2026 
+                                  ? 'bg-mystic-gold/5 border-mystic-gold/30 shadow-[0_0_30px_rgba(250,204,21,0.05)]' 
+                                  : 'bg-white/5 border-white/10 hover:border-white/20'
+                              }`}
+                            >
+                              <div className="flex flex-col md:flex-row gap-6">
+                                <div className="flex-shrink-0">
+                                  <div className={`w-20 h-20 rounded-2xl flex flex-col items-center justify-center font-serif border ${
+                                    item.year === 2026 
+                                      ? 'bg-mystic-gold text-mystic-dark border-mystic-gold' 
+                                      : 'bg-white/5 text-mystic-gold border-white/10'
+                                  }`}>
+                                    <span className="text-xs uppercase font-bold tracking-tighter opacity-60">Năm</span>
+                                    <span className="text-3xl font-black leading-none">{item.value}</span>
+                                    <span className="text-[10px] uppercase font-bold tracking-widest mt-1">{item.year}</span>
+                                  </div>
+                                </div>
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-3 mb-4">
+                                    <h5 className={`text-lg font-bold ${item.year === 2026 ? 'text-mystic-gold' : 'text-white'}`}>
+                                      Năm Cá Nhân Số {item.value} ({item.year})
+                                      {item.year === 2026 && <span className="ml-3 text-xs bg-mystic-gold/20 text-mystic-gold px-2 py-1 rounded-md uppercase tracking-widest">Hiện tại</span>}
+                                    </h5>
+                                  </div>
+                                  <div className="markdown-body prose prose-invert prose-sm max-w-none text-gray-300 leading-relaxed">
+                                    <ReactMarkdown>{item.interpretation}</ReactMarkdown>
+                                  </div>
+                                </div>
+                              </div>
+                            </motion.div>
+                          ))}
                         </div>
                       </div>
                     </motion.div>
