@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Loader2, Save, Share2, History as HistoryIcon, Calculator, User, Calendar, Info, TrendingUp, Pyramid, Layout } from 'lucide-react';
+import { Sparkles, Loader2, Save, Share2, History as HistoryIcon, Calculator, User, Calendar, Info, TrendingUp, Pyramid, Layout, Moon, Sun, Star } from 'lucide-react';
 import { MODELS, SYSTEM_PROMPTS, safeGenerateContent, getCurrentContext } from '../lib/gemini';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -80,6 +80,28 @@ export const NumerologyPage: React.FC = () => {
     setBirthDate(item.result.birthDate);
     setResult(item.result.interpretation);
   };
+
+  const getEnergyLevel = (personalYear: number) => {
+    const mapping: Record<number, number> = {
+      1: 85,
+      2: 65,
+      3: 45,
+      4: 25,
+      5: 55,
+      6: 85,
+      7: 35,
+      8: 75,
+      9: 100
+    };
+    return mapping[personalYear] || 50;
+  };
+
+  const cycleData = useMemo(() => {
+    return result?.nineYearCycle.map(item => ({
+      ...item,
+      energy: getEnergyLevel(item.value)
+    })) || [];
+  }, [result]);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -409,99 +431,156 @@ export const NumerologyPage: React.FC = () => {
                       exit={{ opacity: 0, x: -20 }}
                       className="space-y-12"
                     >
-                      <div className="h-[400px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart data={result.nineYearCycle}>
-                            <defs>
-                              <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#7e22ce" stopOpacity={0.3}/>
-                                <stop offset="95%" stopColor="#7e22ce" stopOpacity={0}/>
-                              </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                            <XAxis dataKey="year" stroke="#666" fontSize={12} tickLine={false} axisLine={false} />
-                            <YAxis stroke="#666" fontSize={12} tickLine={false} axisLine={false} domain={[0, 10]} />
-                            <Tooltip content={<CustomTooltip />} />
-                            <Area 
-                              type="monotone" 
-                              dataKey="value" 
-                              stroke="#7e22ce" 
-                              strokeWidth={4}
-                              fillOpacity={1} 
-                              fill="url(#colorValue)" 
-                              animationDuration={2500}
-                              dot={(props: any) => {
-                                const { cx, cy, payload, index } = props;
-                                if (cx === undefined || cy === undefined) return null;
-                                
-                                const isCurrentYear = index === 0;
-                                const isPeak = payload.value >= 8;
-                                const isTransition = payload.value === 9;
-                                const isNewBeginning = payload.value === 1;
-                                
-                                let dotColor = "#7e22ce";
-                                if (isPeak) dotColor = "#facc15"; // Gold for peaks
-                                if (isNewBeginning) dotColor = "#10b981"; // Emerald for beginnings
-                                if (isTransition) dotColor = "#f43f5e"; // Rose for transitions
-                                
-                                return (
-                                  <g key={`dot-${index}`}>
-                                    {isCurrentYear && (
-                                      <circle cx={cx} cy={cy} r={12} fill={dotColor} opacity={0.2}>
-                                        <animate attributeName="r" from="8" to="16" dur="1.5s" repeatCount="indefinite" />
-                                        <animate attributeName="opacity" from="0.3" to="0" dur="1.5s" repeatCount="indefinite" />
-                                      </circle>
-                                    )}
-                                    <circle 
-                                      cx={cx} 
-                                      cy={cy} 
-                                      r={isCurrentYear || isPeak || isTransition || isNewBeginning ? 6 : 4} 
-                                      fill={dotColor} 
-                                      stroke="#0a0a0f"
-                                      strokeWidth={2}
-                                      className="transition-all duration-300"
-                                    />
-                                  </g>
-                                );
-                              }}
-                              activeDot={{ 
-                                r: 8, 
-                                strokeWidth: 4, 
-                                stroke: "rgba(255,255,255,0.2)",
-                                fill: "#fff" 
-                              }}
-                            />
-                          </AreaChart>
-                        </ResponsiveContainer>
-                      </div>
-                      <div className="flex flex-wrap justify-center gap-6 mt-4 text-xs font-bold uppercase tracking-widest">
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-[#10b981]" />
-                          <span className="text-gray-400">Khởi đầu (Năm 1)</span>
+                      <div className="relative h-[500px] w-full bg-black/40 rounded-3xl border border-white/5 overflow-hidden p-8">
+                        {/* Mystical Background Elements */}
+                        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-mystic-purple/10 blur-[100px] rounded-full" />
+                          <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-mystic-gold/10 blur-[100px] rounded-full" />
+                          <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.1) 1px, transparent 0)', backgroundSize: '40px 40px' }} />
                         </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-[#facc15]" />
-                          <span className="text-gray-400">Đỉnh cao (Năm 8+)</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-[#f43f5e]" />
-                          <span className="text-gray-400">Chuyển giao (Năm 9)</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-[#7e22ce]" />
-                          <span className="text-gray-400">Bình thường</span>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {result.nineYearCycle.map((item, idx) => (
-                          <div key={idx} className="p-6 rounded-2xl bg-white/5 border border-white/10">
-                            <div className="flex justify-between items-center mb-4">
-                              <span className="text-mystic-gold font-bold">{item.year}</span>
-                              <span className="px-3 py-1 bg-mystic-purple/20 text-mystic-purple rounded-lg text-xs font-bold">Năm số {item.value}</span>
+
+                        <div className="relative z-10 h-full flex flex-col">
+                          <div className="flex items-center justify-between mb-8">
+                            <div>
+                              <h3 className="text-2xl font-serif font-bold text-mystic-gold flex items-center gap-3">
+                                <Moon className="w-6 h-6" /> Biểu Đồ Chu Kỳ 9 Năm
+                              </h3>
+                              <p className="text-gray-400 text-sm">Hành trình năng lượng từ Gieo hạt đến Thu hoạch</p>
                             </div>
-                            <p className="text-sm text-gray-400 leading-relaxed">{item.interpretation}</p>
+                            <div className="flex items-center gap-4 text-xs">
+                              <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full bg-mystic-gold shadow-[0_0_10px_rgba(250,204,21,0.5)]" />
+                                <span className="text-gray-300">Năm Hiện Tại (2026)</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full bg-mystic-purple" />
+                                <span className="text-gray-300">Tiến Trình Chu Kỳ</span>
+                              </div>
+                            </div>
                           </div>
-                        ))}
+
+                          <div className="flex-1">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <AreaChart data={cycleData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+                                <defs>
+                                  <linearGradient id="mysticGradient" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#7e22ce" stopOpacity={0.4}/>
+                                    <stop offset="50%" stopColor="#7e22ce" stopOpacity={0.1}/>
+                                    <stop offset="95%" stopColor="#7e22ce" stopOpacity={0}/>
+                                  </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                                <XAxis 
+                                  dataKey="year" 
+                                  stroke="rgba(255,255,255,0.2)" 
+                                  fontSize={12} 
+                                  tickLine={false} 
+                                  axisLine={false}
+                                  dy={10}
+                                />
+                                <YAxis hide domain={[0, 110]} />
+                                <Tooltip 
+                                  content={<CustomTooltip />} 
+                                  cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1 }}
+                                />
+                                <Area 
+                                  type="monotone" 
+                                  dataKey="energy" 
+                                  stroke="#a855f7" 
+                                  strokeWidth={3}
+                                  fillOpacity={1} 
+                                  fill="url(#mysticGradient)" 
+                                  animationDuration={3000}
+                                  dot={(props: any) => {
+                                    const { cx, cy, payload, index } = props;
+                                    if (cx === undefined || cy === undefined) return null;
+                                    
+                                    const isCurrentYear = payload.year === 2026;
+                                    const isPeak = payload.value === 9;
+                                    const isDip = payload.value === 4 || payload.value === 7;
+                                    
+                                    return (
+                                      <g key={`dot-${index}`}>
+                                        {isCurrentYear && (
+                                          <motion.circle 
+                                            cx={cx} cy={cy} r={15} 
+                                            fill="#facc15" 
+                                            initial={{ opacity: 0, scale: 0 }}
+                                            animate={{ opacity: [0.1, 0.3, 0.1], scale: [1, 1.5, 1] }}
+                                            transition={{ duration: 2, repeat: Infinity }}
+                                          />
+                                        )}
+                                        <circle 
+                                          cx={cx} cy={cy} r={isCurrentYear ? 6 : 4} 
+                                          fill={isCurrentYear ? "#facc15" : (isPeak ? "#a855f7" : (isDip ? "#f43f5e" : "#7e22ce"))}
+                                          stroke={isCurrentYear ? "#fff" : "none"}
+                                          strokeWidth={2}
+                                          className="cursor-pointer transition-all hover:r-8"
+                                        />
+                                        <text 
+                                          x={cx} y={cy - 15} 
+                                          textAnchor="middle" 
+                                          fill={isCurrentYear ? "#facc15" : "#fff"} 
+                                          fontSize={isCurrentYear ? 16 : 12}
+                                          fontWeight={isCurrentYear ? "bold" : "normal"}
+                                          className="pointer-events-none font-serif"
+                                        >
+                                          {payload.value}
+                                        </text>
+                                      </g>
+                                    );
+                                  }}
+                                />
+                              </AreaChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="bg-white/5 border border-white/10 rounded-3xl p-8 backdrop-blur-xl">
+                          <h4 className="text-xl font-serif font-bold text-mystic-gold mb-6 flex items-center gap-3">
+                            <Sun className="w-5 h-5" /> Ý Nghĩa Các Giai Đoạn
+                          </h4>
+                          <div className="space-y-6">
+                            {[
+                              { range: 'Năm 1, 2, 3', label: 'Giai đoạn Gieo hạt & Khởi đầu', color: 'text-emerald-400' },
+                              { range: 'Năm 4', label: 'Điểm trũng 1: Củng cố & Nghỉ ngơi', color: 'text-red-400' },
+                              { range: 'Năm 5, 6', label: 'Giai đoạn Thay đổi & Mở rộng', color: 'text-mystic-purple' },
+                              { range: 'Năm 7', label: 'Điểm trũng 2: Chiêm nghiệm & Học hỏi', color: 'text-red-400' },
+                              { range: 'Năm 8, 9', label: 'Giai đoạn Gặt hái & Hoàn tất', color: 'text-mystic-gold' },
+                            ].map((phase, i) => (
+                              <div key={i} className="flex items-start gap-4 group">
+                                <div className="mt-1 w-2 h-2 rounded-full bg-white/20 group-hover:bg-mystic-gold transition-colors" />
+                                <div>
+                                  <span className={`font-bold ${phase.color}`}>{phase.range}:</span>
+                                  <p className="text-gray-400 text-sm mt-1">{phase.label}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="bg-mystic-purple/10 border border-mystic-purple/20 rounded-3xl p-8 backdrop-blur-xl relative overflow-hidden">
+                          <div className="absolute top-0 right-0 p-4 opacity-20">
+                            <Star className="w-12 h-12 text-mystic-gold animate-pulse" />
+                          </div>
+                          <h4 className="text-xl font-serif font-bold text-white mb-6">
+                            Tiêu Điểm Năm Hiện Tại: {result.nineYearCycle[0].year}
+                          </h4>
+                          <div className="flex items-center gap-4 mb-6">
+                            <div className="w-16 h-16 rounded-2xl bg-mystic-gold flex items-center justify-center text-3xl font-serif font-black text-mystic-dark shadow-lg shadow-mystic-gold/20">
+                              {result.nineYearCycle[0].value}
+                            </div>
+                            <div>
+                              <p className="text-mystic-gold font-bold">Năm Cá Nhân Số {result.nineYearCycle[0].value}</p>
+                              <p className="text-gray-400 text-xs">Vận thế hiện tại của bạn</p>
+                            </div>
+                          </div>
+                          <p className="text-gray-300 text-sm leading-relaxed italic">
+                            "{result.nineYearCycle[0].interpretation}"
+                          </p>
+                        </div>
                       </div>
                     </motion.div>
                   )}
