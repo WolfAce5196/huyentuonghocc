@@ -35,10 +35,17 @@ export const ReadingProvider: React.FC<{ children: ReactNode }> = ({ children })
   });
 
   const updateState = (page: keyof ReadingState, data: Partial<ReadingPageData>) => {
-    setStates((prev) => ({
-      ...prev,
-      [page]: { ...(prev[page] || {}), ...data }
-    }));
+    setStates((prev) => {
+      const currentPageData = prev[page] || {};
+      // Deep check if data is actually different to prevent unnecessary re-renders
+      const isDifferent = Object.entries(data).some(([key, value]) => currentPageData[key] !== value);
+      if (!isDifferent) return prev;
+      
+      return {
+        ...prev,
+        [page]: { ...currentPageData, ...data }
+      };
+    });
   };
 
   const startLoading = (page: keyof ReadingState) => {

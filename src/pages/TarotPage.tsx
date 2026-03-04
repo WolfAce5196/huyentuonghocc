@@ -28,20 +28,15 @@ export const TarotPage: React.FC = () => {
 
   // Sync with context - only when pageState changes from OUTSIDE (e.g. background finish)
   useEffect(() => {
-    if (pageState.loading !== undefined) setLoading(pageState.loading);
-    if (pageState.result !== undefined) setInterpretation(pageState.result);
-    if (pageState.error !== undefined) setError(pageState.error);
-    if (pageState.mode !== undefined) setMode(pageState.mode);
-    if (pageState.selectedCards !== undefined) setSelectedCards(pageState.selectedCards);
-    if (pageState.revealedCount !== undefined) setRevealedCount(pageState.revealedCount);
-    if (pageState.question !== undefined) setQuestion(pageState.question);
-    if (pageState.topic !== undefined) setTopic(pageState.topic);
-  }, [pageState.loading, pageState.result, pageState.error, pageState.mode, pageState.selectedCards, pageState.revealedCount, pageState.question, pageState.topic]);
-
-  // Update context when local state changes
-  useEffect(() => {
-    updateState('tarot', { mode, selectedCards, result: interpretation, error, revealedCount, question, topic });
-  }, [mode, selectedCards, interpretation, error, revealedCount, question, topic]);
+    if (pageState.loading !== undefined && pageState.loading !== loading) setLoading(pageState.loading);
+    if (pageState.result !== undefined && pageState.result !== interpretation) setInterpretation(pageState.result);
+    if (pageState.error !== undefined && pageState.error !== error) setError(pageState.error);
+    if (pageState.mode !== undefined && pageState.mode !== mode) setMode(pageState.mode);
+    if (pageState.selectedCards !== undefined && pageState.selectedCards !== selectedCards) setSelectedCards(pageState.selectedCards);
+    if (pageState.revealedCount !== undefined && pageState.revealedCount !== revealedCount) setRevealedCount(pageState.revealedCount);
+    if (pageState.question !== undefined && pageState.question !== question) setQuestion(pageState.question);
+    if (pageState.topic !== undefined && pageState.topic !== topic) setTopic(pageState.topic);
+  }, [pageState]);
 
   useEffect(() => {
     if (interpretation) {
@@ -71,20 +66,32 @@ export const TarotPage: React.FC = () => {
       card,
       isReversed: Math.random() > 0.5 // 50/50 chance for reversed
     }));
+    
+    const newMode = count === 1 ? 'single' : 'triple';
+    setMode(newMode);
     setSelectedCards(drawn);
     setRevealedCount(0);
     setInterpretation(null);
     setError(null);
-    updateState('tarot', { selectedCards: drawn, revealedCount: 0, result: null, error: null, mode: count === 1 ? 'single' : 'triple' });
+    
+    updateState('tarot', { 
+      mode: newMode,
+      selectedCards: drawn, 
+      revealedCount: 0, 
+      result: null, 
+      error: null 
+    });
   };
 
   const handleReveal = () => {
-    const nextCount = revealedCount + 1;
-    setRevealedCount(nextCount);
-    updateState('tarot', { revealedCount: nextCount });
-    if (nextCount === selectedCards.length) {
-      analyzeReading();
-    }
+    setRevealedCount(prev => {
+      const nextCount = prev + 1;
+      updateState('tarot', { revealedCount: nextCount });
+      if (nextCount === selectedCards.length) {
+        analyzeReading();
+      }
+      return nextCount;
+    });
   };
 
   const analyzeReading = async () => {
@@ -130,10 +137,16 @@ export const TarotPage: React.FC = () => {
   };
 
   const handleSelectHistory = (item: HistoryItem) => {
-    setQuestion(item.result.question || '');
-    setTopic(item.result.topic || 'Tổng quan');
-    setMode(item.result.mode);
-    setInterpretation(item.result.interpretation);
+    const q = item.result.question || '';
+    const t = item.result.topic || 'Tổng quan';
+    const m = item.result.mode;
+    const interp = item.result.interpretation;
+    
+    setQuestion(q);
+    setTopic(t);
+    setMode(m);
+    setInterpretation(interp);
+    
     // Find cards from data
     const restoredCards = item.result.cards.map((c: any) => ({
       card: TAROT_CARDS_DATA.find(tc => tc.name_en === c.name) || TAROT_CARDS_DATA[0],
@@ -141,6 +154,15 @@ export const TarotPage: React.FC = () => {
     }));
     setSelectedCards(restoredCards);
     setRevealedCount(restoredCards.length);
+    
+    updateState('tarot', {
+      question: q,
+      topic: t,
+      mode: m,
+      result: interp,
+      selectedCards: restoredCards,
+      revealedCount: restoredCards.length
+    });
   };
 
   return (
