@@ -176,7 +176,7 @@ export const SYSTEM_PROMPTS = {
 
   LƯU Ý QUAN TRỌNG:
   1. "overview" phải là một bản tóm lược thông thái, kết nối tất cả các con số lại với nhau thành một câu chuyện cuộc đời mạch lạc, bóc tách sâu sắc từng khía cạnh.
-  2. "nineYearCycle" phải bắt đầu từ năm 2026 và kéo dài 9 năm liên tiếp.
+  2. "nineYearCycle" phải bao gồm danh sách 13 năm liên tiếp: bắt đầu từ 2 năm trước khi chu kỳ 9 năm hiện tại (chu kỳ chứa năm 2026) bắt đầu, kéo dài qua trọn vẹn chu kỳ 9 năm đó (từ Năm số 1 đến Năm số 9), và kết thúc bằng 2 năm sau khi chu kỳ đó kết thúc. Sắp xếp theo thứ tự thời gian tăng dần.
   3. "pyramids" phải tính đúng độ tuổi dựa trên Số Chủ Đạo.
   4. Kiểm tra kỹ lại các phép cộng trước khi xuất kết quả. Sai sót trong tính toán là không thể chấp nhận.
   5. Nội dung phải chuyên sâu, huyền bí nhưng thực tế, sử dụng tiếng Việt chuẩn xác.`,

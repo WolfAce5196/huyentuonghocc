@@ -73,9 +73,9 @@ export const Navbar: React.FC = () => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden overflow-hidden bg-mystic-bg/95 backdrop-blur-xl border-t border-white/5"
+            className="md:hidden overflow-hidden bg-mystic-bg/98 backdrop-blur-2xl border-t border-white/5 shadow-2xl"
           >
-            <div className="flex flex-col p-4 gap-2">
+            <div className="flex flex-col p-4 gap-1.5">
               {navItems.map((item) => {
                 const isActive = location.pathname === item.path;
                 return (
@@ -84,14 +84,19 @@ export const Navbar: React.FC = () => {
                     to={item.path}
                     onClick={() => setIsOpen(false)}
                     className={cn(
-                      "flex items-center gap-4 p-4 rounded-xl transition-all",
+                      "flex items-center gap-4 p-3.5 rounded-xl transition-all active:scale-[0.98]",
                       isActive 
                         ? "bg-mystic-purple/20 text-mystic-gold border border-mystic-purple/30" 
                         : "text-gray-400 hover:bg-white/5"
                     )}
                   >
-                    <item.icon className="w-5 h-5" />
-                    <span className="font-medium">{item.name}</span>
+                    <div className={cn(
+                      "w-10 h-10 rounded-lg flex items-center justify-center transition-colors",
+                      isActive ? "bg-mystic-gold/10" : "bg-white/5"
+                    )}>
+                      <item.icon className="w-5 h-5" />
+                    </div>
+                    <span className="font-medium tracking-wide">{item.name}</span>
                   </Link>
                 );
               })}

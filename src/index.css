@@ -268,3 +268,33 @@ h1, h2, h3, h4, .font-serif {
   100% { background-position: 0% 50%; }
 }
 
+/* Mobile Optimizations */
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .markdown-body {
+    font-size: 0.95rem;
+  }
+  .markdown-body h2 {
+    font-size: 1.4rem;
+    margin-top: 3rem;
+    letter-spacing: 0.1em;
+  }
+  .markdown-body h3 {
+    font-size: 1.15rem;
+  }
+  .markdown-body blockquote {
+    padding: 1.5rem;
+    font-size: 1rem;
+    margin: 2.5rem 0;
+  }
+}
+

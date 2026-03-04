@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
 import { TarotCard } from '../constants/tarotData';
@@ -9,13 +9,19 @@ interface TarotFlipCardProps {
   isReversed: boolean;
   onReveal: () => void;
   label?: string;
+  isInitialFlipped?: boolean;
 }
 
 const CARD_BACK_URL = "https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/RWS_Tarot_card_back.jpg&width=500";
 
-export const TarotFlipCard: React.FC<TarotFlipCardProps> = ({ card, isReversed, onReveal, label }) => {
-  const [isFlipped, setIsFlipped] = useState(false);
+export const TarotFlipCard: React.FC<TarotFlipCardProps> = ({ card, isReversed, onReveal, label, isInitialFlipped = false }) => {
+  const [isFlipped, setIsFlipped] = useState(isInitialFlipped);
   const [imageError, setImageError] = useState(false);
+
+  // Sync flipped state if it changes from outside (e.g. reset)
+  useEffect(() => {
+    setIsFlipped(isInitialFlipped);
+  }, [isInitialFlipped]);
 
   const handleFlip = () => {
     if (!isFlipped) {

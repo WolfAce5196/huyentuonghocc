@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Hash, Sparkles, RefreshCw, Loader2, History as HistoryIcon } from 'lucide-react';
 import { ai, MODELS, SYSTEM_PROMPTS, safeGenerateContent, getCurrentContext } from '../lib/gemini';
@@ -6,19 +6,59 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { HistorySidebar } from '../components/HistorySidebar';
 import { saveHistory, HistoryItem } from '../lib/history';
+import { useReading } from '../context/ReadingContext';
 
 export const IChingPage: React.FC = () => {
-  const [lines, setLines] = useState<number[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<string | null>(null);
-  const [hexNumber, setHexNumber] = useState<number | null>(null);
-  const [hexName, setHexName] = useState<string | null>(null);
-  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  const { states, updateState, resetState, startLoading, finishLoading } = useReading();
+  const pageState = states.iching || {};
+
+  const [lines, setLines] = useState<number[]>(pageState.lines || []);
+  const [loading, setLoading] = useState(pageState.loading || false);
+  const [result, setResult] = useState<string | null>(pageState.result || null);
+  const [hexNumber, setHexNumber] = useState<number | null>(pageState.hexNumber || null);
+  const [hexName, setHexName] = useState<string | null>(pageState.hexName || null);
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(pageState.generatedImageUrl || null);
   const [imageLoading, setImageLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [question, setQuestion] = useState('');
-  const [startTime, setStartTime] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(pageState.error || null);
+  const [question, setQuestion] = useState(pageState.question || '');
+  const [startTime, setStartTime] = useState<string | null>(pageState.startTime || null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Sync with context
+  useEffect(() => {
+    if (pageState.loading !== undefined) setLoading(pageState.loading);
+    if (pageState.result !== undefined) setResult(pageState.result);
+    if (pageState.error !== undefined) setError(pageState.error);
+    if (pageState.lines !== undefined) setLines(pageState.lines);
+    if (pageState.hexNumber !== undefined) setHexNumber(pageState.hexNumber);
+    if (pageState.hexName !== undefined) setHexName(pageState.hexName);
+    if (pageState.generatedImageUrl !== undefined) setGeneratedImageUrl(pageState.generatedImageUrl);
+    if (pageState.question !== undefined) setQuestion(pageState.question);
+    if (pageState.startTime !== undefined) setStartTime(pageState.startTime);
+  }, [pageState]);
+
+  useEffect(() => {
+    if (result) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [result]);
+
+  const handleReset = () => {
+    setIsRefreshing(true);
+    setTimeout(() => {
+      setLines([]);
+      setResult(null);
+      setHexNumber(null);
+      setHexName(null);
+      setGeneratedImageUrl(null);
+      setError(null);
+      setStartTime(null);
+      setQuestion('');
+      resetState('iching');
+      setIsRefreshing(false);
+    }, 600);
+  };
 
   const castLine = () => {
     if (lines.length >= 6) return;
@@ -39,8 +79,7 @@ export const IChingPage: React.FC = () => {
   };
 
   const analyzeHexagram = async (finalLines: number[]) => {
-    setLoading(true);
-    setError(null);
+    startLoading('iching');
     try {
       const hexagramStr = finalLines.map(l => l === 1 ? 'Dương' : 'Âm').join(', ');
       const prompt = `Tôi vừa gieo được quẻ Kinh Dịch với các hào từ dưới lên trên như sau: ${hexagramStr}. 
@@ -61,37 +100,41 @@ export const IChingPage: React.FC = () => {
       });
       
       const data = JSON.parse(response.text || "{}");
-      setResult(data.interpretation || "Không thể giải quẻ.");
-      setHexNumber(data.hexagramNumber || null);
-      setHexName(data.hexagramName || null);
+      const resultText = data.interpretation || "Không thể giải quẻ.";
+      const hNum = data.hexagramNumber || null;
+      const hName = data.hexagramName || null;
 
       // Save to history
       saveHistory({
         type: 'iching',
-        title: question || `Gieo Quẻ Kinh Dịch (${data.hexagramName})`,
+        title: question || `Gieo Quẻ Kinh Dịch (${hName})`,
         result: {
           question,
           startTime,
           lines: finalLines,
-          hexNumber: data.hexagramNumber,
-          hexName: data.hexagramName,
-          interpretation: data.interpretation
+          hexNumber: hNum,
+          hexName: hName,
+          interpretation: resultText
         }
       });
 
+      finishLoading('iching', { 
+        result: resultText,
+        hexNumber: hNum,
+        hexName: hName
+      });
+
       // Generate AI Illustration
-      if (data.hexagramNumber && data.hexagramName) {
-        generateIllustration(data.hexagramNumber, data.hexagramName);
+      if (hNum && hName) {
+        generateIllustration(hNum, hName);
       }
     } catch (err: any) {
       console.error(err);
+      let errorMsg = "Đã xảy ra lỗi khi giải quẻ. Vui lòng thử lại.";
       if (err?.message?.includes("429") || err?.message?.includes("RESOURCE_EXHAUSTED")) {
-        setError("Hệ thống đang quá tải (Rate Limit). Vui lòng đợi 1-2 phút và thử lại.");
-      } else {
-        setError("Đã xảy ra lỗi khi giải quẻ. Vui lòng thử lại.");
+        errorMsg = "Hệ thống đang quá tải (Rate Limit). Vui lòng đợi 1-2 phút và thử lại.";
       }
-    } finally {
-      setLoading(false);
+      finishLoading('iching', {}, errorMsg);
     }
   };
 
@@ -111,7 +154,9 @@ export const IChingPage: React.FC = () => {
 
       for (const part of response.candidates[0].content.parts) {
         if (part.inlineData) {
-          setGeneratedImageUrl(`data:image/png;base64,${part.inlineData.data}`);
+          const imageUrl = `data:image/png;base64,${part.inlineData.data}`;
+          setGeneratedImageUrl(imageUrl);
+          updateState('iching', { generatedImageUrl: imageUrl });
           break;
         }
       }
@@ -144,44 +189,60 @@ export const IChingPage: React.FC = () => {
 
   return (
     <div className="pt-32 pb-20 px-4 max-w-4xl mx-auto">
-      <div className="flex justify-end mb-4">
-        <button
-          onClick={() => setIsHistoryOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-full border border-white/10 transition-all text-mystic-gold text-sm font-bold uppercase tracking-widest"
-        >
-          <HistoryIcon className="w-4 h-4" /> Lịch sử
-        </button>
-      </div>
-
-      <div className="text-center mb-12">
-        <h1 className="text-4xl md:text-5xl font-serif font-bold mb-4">Gieo Quẻ Kinh Dịch</h1>
-        <p className="text-mystic-gold tracking-[0.2em] uppercase text-sm">
+      <div className="text-center mb-8 md:mb-12">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif font-bold mb-4">Gieo Quẻ Kinh Dịch</h1>
+        <p className="text-mystic-gold tracking-[0.15em] md:tracking-[0.2em] uppercase text-[10px] md:text-sm px-4 mb-6">
           Thấu hiểu quy luật biến hóa của đất trời
         </p>
+        <div className="flex justify-center gap-3">
+          <motion.button
+            whileHover={{ scale: 1.05, backgroundColor: "rgba(255,255,255,0.1)" }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleReset}
+            className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-mystic-gold/30 transition-all text-mystic-gold text-[10px] md:text-xs font-bold uppercase tracking-widest shadow-[0_0_15px_rgba(250,204,21,0.1)] hover:shadow-[0_0_20px_rgba(250,204,21,0.2)]"
+            title="Làm mới trang"
+          >
+            <motion.div
+              animate={isRefreshing ? { rotate: 360 } : { rotate: 0 }}
+              transition={{ duration: 0.6, ease: "easeInOut" }}
+            >
+              <RefreshCw className="w-3.5 h-3.5 md:w-4 md:h-4" />
+            </motion.div>
+            Làm mới
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05, backgroundColor: "rgba(255,255,255,0.1)" }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setIsHistoryOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-mystic-gold/30 transition-all text-mystic-gold text-[10px] md:text-xs font-bold uppercase tracking-widest shadow-[0_0_15px_rgba(250,204,21,0.1)] hover:shadow-[0_0_20px_rgba(250,204,21,0.2)]"
+          >
+            <HistoryIcon className="w-3.5 h-3.5 md:w-4 md:h-4" /> Lịch sử
+          </motion.button>
+        </div>
       </div>
 
-      <div className="max-w-2xl mx-auto mb-12">
-        <div className="glass-morphism p-6 rounded-2xl border-mystic-purple/20">
-          <label className="block text-mystic-gold text-xs uppercase tracking-widest mb-2 font-bold">Câu hỏi của bạn</label>
+      <div className="max-w-2xl mx-auto mb-8 md:mb-12">
+        <div className="glass-morphism p-5 md:p-6 rounded-2xl border-mystic-purple/20">
+          <label className="block text-mystic-gold text-[10px] md:text-xs uppercase tracking-widest mb-2 font-bold">Câu hỏi của bạn</label>
           <input 
             type="text" 
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             placeholder="Nhập vấn đề bạn muốn xin quẻ..."
-            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-mystic-gold outline-none transition-all"
+            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-mystic-gold outline-none transition-all text-sm md:text-base"
           />
           {startTime && (
-            <div className="mt-4 flex items-center gap-2 text-mystic-purple text-sm">
-              <Sparkles className="w-4 h-4" />
+            <div className="mt-3 md:mt-4 flex items-center gap-2 text-mystic-purple text-xs md:text-sm">
+              <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4" />
               <span>Giờ động tâm: <span className="text-mystic-gold font-bold">{startTime}</span></span>
             </div>
           )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-start">
         <div className="flex flex-col items-center">
-          <div className="w-64 h-80 glass-morphism rounded-3xl p-8 flex flex-col-reverse gap-6 justify-center items-center border-mystic-purple/30 shadow-[0_20px_50px_rgba(0,0,0,0.6)] [perspective:1200px]">
+          <div className="w-full max-w-[280px] md:w-64 h-72 md:h-80 glass-morphism rounded-3xl p-6 md:p-8 flex flex-col-reverse gap-4 md:gap-6 justify-center items-center border-mystic-purple/30 shadow-[0_20px_50px_rgba(0,0,0,0.6)] [perspective:1200px]">
             {Array.from({ length: 6 }).map((_, i) => (
               <motion.div
                 key={i}
@@ -228,14 +289,14 @@ export const IChingPage: React.FC = () => {
           <button
             disabled={lines.length >= 6 || loading || !question.trim()}
             onClick={castLine}
-            className="mt-8 px-12 py-4 bg-mystic-purple rounded-full font-bold tracking-widest uppercase hover:bg-mystic-purple/80 transition-all mystic-glow disabled:opacity-50 disabled:cursor-not-allowed"
+            className="mt-6 md:mt-8 w-full max-w-[280px] md:w-auto px-8 md:px-12 py-3.5 md:py-4 bg-mystic-purple rounded-full font-bold tracking-widest uppercase hover:bg-mystic-purple/80 transition-all mystic-glow disabled:opacity-50 disabled:cursor-not-allowed text-xs md:text-base"
           >
             {lines.length < 6 ? `Gieo hào ${lines.length + 1}` : 'Đã gieo xong'}
           </button>
           {!question.trim() && (
-            <p className="mt-2 text-red-500/70 text-xs font-bold animate-pulse">Vui lòng nhập câu hỏi trước khi gieo quẻ</p>
+            <p className="mt-2 text-red-500/70 text-[10px] md:text-xs font-bold animate-pulse">Vui lòng nhập câu hỏi trước khi gieo quẻ</p>
           )}
-          <p className="mt-4 text-gray-500 text-sm italic">Nhấn 6 lần để hoàn thành quẻ</p>
+          <p className="mt-3 md:mt-4 text-gray-500 text-xs md:text-sm italic">Nhấn 6 lần để hoàn thành quẻ</p>
         </div>
 
         <div className="min-h-[400px]">
@@ -255,24 +316,24 @@ export const IChingPage: React.FC = () => {
                 key="result"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="glass-morphism p-8 rounded-3xl border-mystic-gold/30 h-full overflow-y-auto max-h-[600px]"
+                className="glass-morphism p-6 md:p-8 rounded-3xl border-mystic-gold/30 h-full overflow-y-auto max-h-[600px]"
               >
                 <div className="markdown-body">
                   {hexNumber && (
-                    <div className="mb-10 flex flex-col items-center gap-6">
+                    <div className="mb-8 md:mb-10 flex flex-col items-center gap-4 md:gap-6">
                       <motion.div 
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className="relative group w-full max-w-md"
+                        className="relative group w-full max-w-sm md:max-w-md"
                       >
                         {/* Mystic Background Glow */}
                         <div className="absolute -inset-4 bg-mystic-gold/20 blur-2xl rounded-full opacity-50 group-hover:opacity-100 transition-opacity duration-500" />
                         
-                        <div className="relative aspect-square bg-black/40 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-4 border-mystic-gold/30 overflow-hidden flex items-center justify-center">
+                        <div className="relative aspect-square bg-black/40 rounded-[1.5rem] md:rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-2 md:border-4 border-mystic-gold/30 overflow-hidden flex items-center justify-center">
                           {imageLoading ? (
                             <div className="flex flex-col items-center gap-3">
-                              <Loader2 className="w-10 h-10 text-mystic-gold animate-spin" />
-                              <span className="text-mystic-gold text-xs uppercase tracking-widest animate-pulse">Đang họa hình tượng...</span>
+                              <Loader2 className="w-8 h-8 md:w-10 md:h-10 text-mystic-gold animate-spin" />
+                              <span className="text-mystic-gold text-[10px] md:text-xs uppercase tracking-widest animate-pulse">Đang họa hình tượng...</span>
                             </div>
                           ) : generatedImageUrl ? (
                             <img 
@@ -282,11 +343,11 @@ export const IChingPage: React.FC = () => {
                               referrerPolicy="no-referrer"
                             />
                           ) : (
-                            <div className="p-6 bg-white rounded-2xl">
+                            <div className="p-4 md:p-6 bg-white rounded-xl md:rounded-2xl">
                               <img 
                                 src={`https://raw.githubusercontent.com/pete-otaqui/iching/master/images/hexagrams/${hexNumber}.png`}
                                 alt={`Quẻ số ${hexNumber}`}
-                                className="w-32 h-32 object-contain"
+                                className="w-24 h-24 md:w-32 md:h-32 object-contain"
                                 referrerPolicy="no-referrer"
                               />
                             </div>
@@ -294,11 +355,11 @@ export const IChingPage: React.FC = () => {
                           
                           {/* Small traditional symbol overlay */}
                           {generatedImageUrl && (
-                            <div className="absolute bottom-4 right-4 p-2 bg-white/90 rounded-lg shadow-lg border border-mystic-gold/50">
+                            <div className="absolute bottom-3 right-3 md:bottom-4 md:right-4 p-1.5 md:p-2 bg-white/90 rounded-lg shadow-lg border border-mystic-gold/50">
                               <img 
                                 src={`https://raw.githubusercontent.com/pete-otaqui/iching/master/images/hexagrams/${hexNumber}.png`}
                                 alt="Symbol"
-                                className="w-10 h-10 object-contain"
+                                className="w-8 h-8 md:w-10 md:h-10 object-contain"
                                 referrerPolicy="no-referrer"
                               />
                             </div>
@@ -306,8 +367,8 @@ export const IChingPage: React.FC = () => {
                         </div>
                       </motion.div>
                       <div className="text-center">
-                        <span className="block text-mystic-gold font-serif text-3xl font-bold mb-1">Quẻ số {hexNumber}: {hexName}</span>
-                        <span className="block text-mystic-purple text-xs uppercase tracking-[0.3em] font-bold">Hình tượng quẻ dịch</span>
+                        <span className="block text-mystic-gold font-serif text-2xl md:text-3xl font-bold mb-1">Quẻ số {hexNumber}: {hexName}</span>
+                        <span className="block text-mystic-purple text-[10px] md:text-xs uppercase tracking-[0.2em] md:tracking-[0.3em] font-bold">Hình tượng quẻ dịch</span>
                       </div>
                     </div>
                   )}
@@ -315,7 +376,7 @@ export const IChingPage: React.FC = () => {
                 </div>
                 <button
                   onClick={reset}
-                  className="mt-8 flex items-center gap-2 text-mystic-gold hover:underline"
+                  className="mt-6 md:mt-8 flex items-center gap-2 text-mystic-gold hover:underline text-sm md:text-base"
                 >
                   <RefreshCw className="w-4 h-4" /> Gieo quẻ mới
                 </button>

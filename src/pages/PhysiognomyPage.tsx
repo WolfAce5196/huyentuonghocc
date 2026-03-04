@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, Camera, Sparkles, Loader2, Save, Share2, User, RefreshCw, History as HistoryIcon } from 'lucide-react';
 import { ai, MODELS, SYSTEM_PROMPTS, safeGenerateContent, getCurrentContext } from '../lib/gemini';
@@ -7,21 +7,53 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { HistorySidebar } from '../components/HistorySidebar';
 import { saveHistory, HistoryItem, getHistory } from '../lib/history';
+import { useReading } from '../context/ReadingContext';
 
 export const PhysiognomyPage: React.FC = () => {
-  const [image, setImage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { states, updateState, resetState, startLoading, finishLoading } = useReading();
+  const pageState = states.physiognomy || {};
+
+  const [image, setImage] = useState<string | null>(pageState.image || null);
+  const [loading, setLoading] = useState(pageState.loading || false);
+  const [result, setResult] = useState<string | null>(pageState.result || null);
+  const [error, setError] = useState<string | null>(pageState.error || null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync with context
+  useEffect(() => {
+    if (pageState.loading !== undefined) setLoading(pageState.loading);
+    if (pageState.result !== undefined) setResult(pageState.result);
+    if (pageState.error !== undefined) setError(pageState.error);
+    if (pageState.image !== undefined) setImage(pageState.image);
+  }, [pageState.loading, pageState.result, pageState.error, pageState.image]);
+
+  useEffect(() => {
+    if (result) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [result]);
+
+  const handleReset = () => {
+    setIsRefreshing(true);
+    setTimeout(() => {
+      setImage(null);
+      setResult(null);
+      setError(null);
+      resetState('physiognomy');
+      setIsRefreshing(false);
+    }, 600);
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImage(reader.result as string);
+        const imageData = reader.result as string;
+        setImage(imageData);
+        updateState('physiognomy', { image: imageData, error: null });
         setError(null);
       };
       reader.readAsDataURL(file);
@@ -30,9 +62,7 @@ export const PhysiognomyPage: React.FC = () => {
 
   const analyzeFace = async () => {
     if (!image) return;
-    setLoading(true);
-    setResult(null);
-    setError(null);
+    startLoading('physiognomy');
 
     try {
       const history = getHistory('physiognomy');
@@ -70,8 +100,7 @@ export const PhysiognomyPage: React.FC = () => {
       });
 
       const resultText = response.text || "Không thể phân tích khuôn mặt. Vui lòng thử lại.";
-      setResult(resultText);
-
+      
       // Save to history
       saveHistory({
         type: 'physiognomy',
@@ -81,15 +110,15 @@ export const PhysiognomyPage: React.FC = () => {
           interpretation: resultText
         }
       });
+
+      finishLoading('physiognomy', { result: resultText });
     } catch (err: any) {
       console.error(err);
+      let errorMsg = "Đã xảy ra lỗi trong quá trình phân tích. Vui lòng kiểm tra lại hình ảnh.";
       if (err?.message?.includes("429") || err?.message?.includes("RESOURCE_EXHAUSTED")) {
-        setError("Hệ thống đang quá tải (Rate Limit). Vui lòng đợi 1-2 phút và thử lại.");
-      } else {
-        setError("Đã xảy ra lỗi trong quá trình phân tích. Vui lòng kiểm tra lại hình ảnh.");
+        errorMsg = "Hệ thống đang quá tải (Rate Limit). Vui lòng đợi 1-2 phút và thử lại.";
       }
-    } finally {
-      setLoading(false);
+      finishLoading('physiognomy', {}, errorMsg);
     }
   };
 
@@ -100,26 +129,42 @@ export const PhysiognomyPage: React.FC = () => {
 
   return (
     <div className="pt-32 pb-20 px-4 max-w-6xl mx-auto">
-      <div className="flex justify-end mb-4">
-        <button
-          onClick={() => setIsHistoryOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-full border border-white/10 transition-all text-mystic-gold text-sm font-bold uppercase tracking-widest"
-        >
-          <HistoryIcon className="w-4 h-4" /> Lịch sử
-        </button>
-      </div>
-
-      <div className="text-center mb-12">
+      <div className="text-center mb-8 md:mb-12">
         <motion.h1 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-4xl md:text-5xl font-serif font-bold mb-4"
+          className="text-3xl sm:text-4xl md:text-5xl font-serif font-bold mb-4"
         >
           Xem Nhân Tướng AI
         </motion.h1>
-        <p className="text-mystic-gold tracking-[0.2em] uppercase text-sm">
+        <p className="text-mystic-gold tracking-[0.15em] md:tracking-[0.2em] uppercase text-[10px] md:text-sm px-4 mb-6">
           “Khuôn mặt là cuốn sách vận mệnh – Hãy để AI đọc giúp bạn”
         </p>
+        <div className="flex justify-center gap-3">
+          <motion.button
+            whileHover={{ scale: 1.05, backgroundColor: "rgba(255,255,255,0.1)" }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleReset}
+            className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-mystic-gold/30 transition-all text-mystic-gold text-[10px] md:text-xs font-bold uppercase tracking-widest shadow-[0_0_15px_rgba(250,204,21,0.1)] hover:shadow-[0_0_20px_rgba(250,204,21,0.2)]"
+            title="Làm mới trang"
+          >
+            <motion.div
+              animate={isRefreshing ? { rotate: 360 } : { rotate: 0 }}
+              transition={{ duration: 0.6, ease: "easeInOut" }}
+            >
+              <RefreshCw className="w-3.5 h-3.5 md:w-4 md:h-4" />
+            </motion.div>
+            Làm mới
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05, backgroundColor: "rgba(255,255,255,0.1)" }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setIsHistoryOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-mystic-gold/30 transition-all text-mystic-gold text-[10px] md:text-xs font-bold uppercase tracking-widest shadow-[0_0_15px_rgba(250,204,21,0.1)] hover:shadow-[0_0_20px_rgba(250,204,21,0.2)]"
+          >
+            <HistoryIcon className="w-3.5 h-3.5 md:w-4 md:h-4" /> Lịch sử
+          </motion.button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
@@ -127,7 +172,7 @@ export const PhysiognomyPage: React.FC = () => {
         <motion.div 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="glass-morphism p-8 rounded-3xl border-mystic-purple/30"
+          className="glass-morphism p-5 md:p-8 rounded-3xl border-mystic-purple/30"
         >
           <div 
             onClick={() => fileInputRef.current?.click()}
@@ -140,14 +185,14 @@ export const PhysiognomyPage: React.FC = () => {
               <>
                 <img src={image} alt="Preview" className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <Camera className="w-12 h-12 text-white" />
+                  <Camera className="w-10 h-10 md:w-12 md:h-12 text-white" />
                 </div>
               </>
             ) : (
-              <div className="text-center p-6">
-                <Upload className="w-16 h-16 text-mystic-purple mb-4 mx-auto group-hover:text-mystic-gold transition-colors" />
-                <p className="text-lg font-medium mb-2">Tải ảnh khuôn mặt</p>
-                <p className="text-gray-500 text-sm">Hỗ trợ JPG, PNG. Chụp rõ nét, đủ ánh sáng.</p>
+              <div className="text-center p-4 md:p-6">
+                <Upload className="w-12 h-12 md:w-16 md:h-16 text-mystic-purple mb-4 mx-auto group-hover:text-mystic-gold transition-colors" />
+                <p className="text-base md:text-lg font-medium mb-2">Tải ảnh khuôn mặt</p>
+                <p className="text-gray-500 text-xs md:text-sm">Hỗ trợ JPG, PNG. Chụp rõ nét, đủ ánh sáng.</p>
               </div>
             )}
             <input 
@@ -162,7 +207,7 @@ export const PhysiognomyPage: React.FC = () => {
           <button
             disabled={!image || loading}
             onClick={analyzeFace}
-            className="w-full mt-8 py-4 px-8 bg-mystic-purple hover:bg-mystic-purple/80 disabled:bg-gray-800 disabled:cursor-not-allowed rounded-xl font-bold tracking-widest uppercase flex items-center justify-center gap-3 transition-all mystic-glow"
+            className="w-full mt-6 md:mt-8 py-3.5 md:py-4 px-8 bg-mystic-purple hover:bg-mystic-purple/80 disabled:bg-gray-800 disabled:cursor-not-allowed rounded-xl font-bold tracking-widest uppercase flex items-center justify-center gap-3 transition-all mystic-glow text-sm md:text-base"
           >
             {loading ? (
               <>
@@ -221,16 +266,16 @@ export const PhysiognomyPage: React.FC = () => {
                 key="result"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="glass-morphism p-8 rounded-3xl border-mystic-gold/30 h-full overflow-y-auto max-h-[800px]"
+                className="glass-morphism p-5 md:p-8 rounded-3xl border-mystic-gold/30 h-full overflow-y-auto max-h-[600px] md:max-h-[800px]"
               >
-                <div className="flex items-center justify-between mb-8 border-b border-mystic-gold/20 pb-4">
-                  <h2 className="text-2xl font-serif font-bold text-mystic-gold">Kết Quả Luận Giải</h2>
+                <div className="flex items-center justify-between mb-6 md:mb-8 border-b border-mystic-gold/20 pb-4">
+                  <h2 className="text-xl md:text-2xl font-serif font-bold text-mystic-gold">Kết Quả Luận Giải</h2>
                   <div className="flex gap-2">
                     <button className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
-                      <Save className="w-5 h-5" />
+                      <Save className="w-4 h-4 md:w-5 md:h-5" />
                     </button>
                     <button className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
-                      <Share2 className="w-5 h-5" />
+                      <Share2 className="w-4 h-4 md:w-5 md:h-5" />
                     </button>
                   </div>
                 </div>

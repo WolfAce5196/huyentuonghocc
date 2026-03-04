@@ -38,23 +38,25 @@ export const HistorySidebar: React.FC<HistorySidebarProps> = ({ type, onSelect, 
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
           />
           <motion.div
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed right-0 top-0 h-full w-full max-w-md bg-mystic-bg border-l border-white/10 z-50 flex flex-col"
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-lg max-h-[80vh] bg-mystic-bg border border-white/10 z-50 flex flex-col rounded-3xl shadow-[0_0_100px_rgba(0,0,0,0.8)] overflow-hidden"
           >
-            <div className="p-6 border-bottom border-white/10 flex items-center justify-between bg-black/20">
+            <div className="p-5 md:p-6 border-b border-white/10 flex items-center justify-between bg-black/40 backdrop-blur-md">
               <div className="flex items-center gap-3">
                 <History className="w-5 h-5 text-mystic-gold" />
-                <h2 className="text-xl font-serif font-bold text-white">Lịch sử xem</h2>
+                <h2 className="text-lg md:text-xl font-serif font-bold text-white">Lịch sử xem</h2>
               </div>
-              <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
-                <X className="w-5 h-5" />
+              <button 
+                onClick={onClose} 
+                className="p-2 hover:bg-white/10 rounded-full transition-colors text-gray-400 hover:text-white"
+              >
+                <X className="w-6 h-6" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            <div className="flex-1 overflow-y-auto p-5 md:p-6 space-y-4 custom-scrollbar">
               {history.length === 0 ? (
                 <div className="text-center py-20 opacity-40">
                   <Clock className="w-12 h-12 mx-auto mb-4" />
