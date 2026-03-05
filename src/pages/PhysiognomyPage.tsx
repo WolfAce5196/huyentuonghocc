@@ -7,7 +7,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { HistorySidebar } from '../components/HistorySidebar';
 import { saveHistory, HistoryItem, getHistory } from '../lib/history';
-import { useReading } from '../context/ReadingContext';
+import { DownloadModal, UserData } from '../components/DownloadModal';
+import { downloadAsFile } from '../lib/download';
 
 export const PhysiognomyPage: React.FC = () => {
   const { states, updateState, resetState, startLoading, finishLoading } = useReading();
@@ -18,6 +19,7 @@ export const PhysiognomyPage: React.FC = () => {
   const [result, setResult] = useState<string | null>(pageState.result || null);
   const [error, setError] = useState<string | null>(pageState.error || null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isDownloadOpen, setIsDownloadOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -127,6 +129,11 @@ export const PhysiognomyPage: React.FC = () => {
     setResult(item.result.interpretation);
   };
 
+  const handleDownload = (userData: UserData) => {
+    if (!result) return;
+    downloadAsFile(result, 'nhan-tuong-hoc.txt', userData);
+  };
+
   return (
     <div className="pt-32 pb-20 px-4 max-w-6xl mx-auto">
       <div className="text-center mb-8 md:mb-12">
@@ -164,6 +171,16 @@ export const PhysiognomyPage: React.FC = () => {
           >
             <HistoryIcon className="w-3.5 h-3.5 md:w-4 md:h-4" /> Lịch sử
           </motion.button>
+          {result && (
+            <motion.button
+              whileHover={{ scale: 1.05, backgroundColor: "rgba(255,255,255,0.1)" }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setIsDownloadOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-mystic-purple/20 rounded-full border border-mystic-purple/30 transition-all text-mystic-gold text-[10px] md:text-xs font-bold uppercase tracking-widest shadow-[0_0_15px_rgba(126,34,206,0.2)] hover:shadow-[0_0_20px_rgba(126,34,206,0.3)]"
+            >
+              <Download className="w-3.5 h-3.5 md:w-4 md:h-4" /> Tải Dữ Liệu
+            </motion.button>
+          )}
         </div>
       </div>
 
@@ -306,6 +323,12 @@ export const PhysiognomyPage: React.FC = () => {
         isOpen={isHistoryOpen}
         onClose={() => setIsHistoryOpen(false)}
         onSelect={handleSelectHistory}
+      />
+      <DownloadModal
+        isOpen={isDownloadOpen}
+        onClose={() => setIsDownloadOpen(false)}
+        onDownload={handleDownload}
+        title="Nhân Tướng Học"
       />
     </div>
   );
