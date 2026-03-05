@@ -230,7 +230,7 @@ ${result.advice.map(a => `- ${a}`).join('\n')}
   }, [activeTab, result]);
 
   const currentYearData = useMemo(() => {
-    return result?.nineYearCycle.find(item => item.year === 2026);
+    return result?.nineYearCycle?.find(item => item.year === 2026);
   }, [result]);
 
   return (
@@ -460,7 +460,7 @@ ${result.advice.map(a => `- ${a}`).join('\n')}
                             <Sparkles className="w-4 h-4" /> Thế mạnh cốt lõi
                           </h4>
                           <ul className="space-y-2">
-                            {result.strengths.map((s, i) => (
+                            {result.strengths?.map((s, i) => (
                               <li key={i} className="text-gray-300 text-sm flex items-start gap-2">
                                 <span className="text-emerald-500 mt-1">•</span> {s}
                               </li>
@@ -472,7 +472,7 @@ ${result.advice.map(a => `- ${a}`).join('\n')}
                             <Info className="w-4 h-4" /> Thách thức & Bài học
                           </h4>
                           <ul className="space-y-2">
-                            {result.weaknesses.map((w, i) => (
+                            {result.weaknesses?.map((w, i) => (
                               <li key={i} className="text-gray-300 text-sm flex items-start gap-2">
                                 <span className="text-red-500 mt-1">•</span> {w}
                               </li>
@@ -484,7 +484,7 @@ ${result.advice.map(a => `- ${a}`).join('\n')}
                             <Calculator className="w-4 h-4" /> Lời khuyên chiến lược
                           </h4>
                           <ul className="space-y-2">
-                            {result.advice.map((a, i) => (
+                            {result.advice?.map((a, i) => (
                               <li key={i} className="text-gray-300 text-sm flex items-start gap-2">
                                 <span className="text-mystic-gold mt-1">•</span> {a}
                               </li>
@@ -505,7 +505,7 @@ ${result.advice.map(a => `- ${a}`).join('\n')}
                     >
                       {/* Core Numbers Cards - Responsive Grid */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                        {result.coreNumbers.map((item, idx) => (
+                        {result.coreNumbers?.map((item, idx) => (
                           <motion.div 
                             key={idx}
                             initial={{ opacity: 0, y: 20 }}
@@ -558,7 +558,7 @@ ${result.advice.map(a => `- ${a}`).join('\n')}
                         <div className="p-5 md:p-6 rounded-2xl bg-emerald-500/5 border border-emerald-500/20">
                           <h4 className="text-emerald-500 font-bold uppercase tracking-widest text-[10px] md:text-xs mb-4">Điểm Mạnh</h4>
                           <ul className="space-y-2">
-                            {result.strengths.map((s, i) => (
+                            {result.strengths?.map((s, i) => (
                               <li key={i} className="text-xs md:text-sm text-gray-300 flex items-start gap-2">
                                 <span className="text-emerald-500 mt-1">•</span> {s}
                               </li>
@@ -568,7 +568,7 @@ ${result.advice.map(a => `- ${a}`).join('\n')}
                         <div className="p-5 md:p-6 rounded-2xl bg-red-500/5 border border-red-500/20">
                           <h4 className="text-red-500 font-bold uppercase tracking-widest text-[10px] md:text-xs mb-4">Điểm Yếu</h4>
                           <ul className="space-y-2">
-                            {result.weaknesses.map((w, i) => (
+                            {result.weaknesses?.map((w, i) => (
                               <li key={i} className="text-xs md:text-sm text-gray-300 flex items-start gap-2">
                                 <span className="text-red-500 mt-1">•</span> {w}
                               </li>
@@ -578,7 +578,7 @@ ${result.advice.map(a => `- ${a}`).join('\n')}
                         <div className="p-5 md:p-6 rounded-2xl bg-mystic-gold/5 border border-mystic-gold/20">
                           <h4 className="text-mystic-gold font-bold uppercase tracking-widest text-[10px] md:text-xs mb-4">Lời Khuyên</h4>
                           <ul className="space-y-2">
-                            {result.advice.map((a, i) => (
+                            {result.advice?.map((a, i) => (
                               <li key={i} className="text-xs md:text-sm text-gray-300 flex items-start gap-2">
                                 <span className="text-mystic-gold mt-1">•</span> {a}
                               </li>
@@ -864,9 +864,9 @@ ${result.advice.map(a => `- ${a}`).join('\n')}
 
                             {/* Base Nodes */}
                             {[
-                              { x: 150, y: 450, label: 'Tháng', val: new Date(birthDate).getMonth() + 1 },
-                              { x: 400, y: 450, label: 'Ngày', val: new Date(birthDate).getDate() },
-                              { x: 650, y: 450, label: 'Năm', val: String(new Date(birthDate).getFullYear()).split('').reduce((a,b) => a + Number(b), 0) }
+                              { x: 150, y: 450, label: 'Tháng', val: isNaN(new Date(birthDate).getTime()) ? 0 : new Date(birthDate).getMonth() + 1 },
+                              { x: 400, y: 450, label: 'Ngày', val: isNaN(new Date(birthDate).getTime()) ? 0 : new Date(birthDate).getDate() },
+                              { x: 650, y: 450, label: 'Năm', val: isNaN(new Date(birthDate).getTime()) ? 0 : String(new Date(birthDate).getFullYear()).split('').reduce((a,b) => a + Number(b), 0) }
                             ].map((node, i) => (
                               <g key={`base-${i}`}>
                                 <circle cx={node.x} cy={node.y} r={isMobile ? "35" : "30"} fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.2)" />
@@ -876,21 +876,24 @@ ${result.advice.map(a => `- ${a}`).join('\n')}
                             ))}
 
                             {/* Peak Nodes */}
-                            {result.pyramids.map((peak, i) => {
+                            {result.pyramids?.map((peak, i) => {
                               const coords = [
                                 { x: 275, y: 300 }, // Peak 1
                                 { x: 525, y: 300 }, // Peak 2
                                 { x: 400, y: 150 }, // Peak 3
                                 { x: 400, y: 50 }   // Peak 4
                               ];
+                              
+                              if (i >= coords.length) return null;
                               const { x, y } = coords[i];
                               
-                              const currentAge = 2026 - new Date(birthDate).getFullYear();
+                              const birthYear = new Date(birthDate).getFullYear();
+                              const currentAge = isNaN(birthYear) ? 0 : 2026 - birthYear;
                               let isCurrent = false;
                               if (i === 0) isCurrent = currentAge <= result.pyramids[0].age;
-                              else if (i === 1) isCurrent = currentAge > result.pyramids[0].age && currentAge <= result.pyramids[1].age;
-                              else if (i === 2) isCurrent = currentAge > result.pyramids[1].age && currentAge <= result.pyramids[2].age;
-                              else if (i === 3) isCurrent = currentAge > result.pyramids[2].age;
+                              else if (i === 1 && result.pyramids[0]) isCurrent = currentAge > result.pyramids[0].age && currentAge <= result.pyramids[1]?.age;
+                              else if (i === 2 && result.pyramids[1]) isCurrent = currentAge > result.pyramids[1].age && currentAge <= result.pyramids[2]?.age;
+                              else if (i === 3 && result.pyramids[2]) isCurrent = currentAge > result.pyramids[2].age;
                               
                               return (
                                 <g key={`peak-${i}`} className="cursor-pointer group">
@@ -943,11 +946,12 @@ ${result.advice.map(a => `- ${a}`).join('\n')}
                             viewport={{ once: true }}
                             className={`p-6 md:p-8 rounded-3xl border transition-all relative overflow-hidden group hover:border-mystic-gold/30 ${
                               (() => {
-                                const currentAge = 2026 - new Date(birthDate).getFullYear();
+                                const birthYear = new Date(birthDate).getFullYear();
+                                const currentAge = isNaN(birthYear) ? 0 : 2026 - birthYear;
                                 const isCurrent = (idx === 0 && currentAge <= item.age) ||
-                                                 (idx === 1 && currentAge > result.pyramids[0].age && currentAge <= item.age) ||
-                                                 (idx === 2 && currentAge > result.pyramids[1].age && currentAge <= item.age) ||
-                                                 (idx === 3 && currentAge > result.pyramids[2].age);
+                                                 (idx === 1 && result.pyramids[0] && currentAge > result.pyramids[0].age && currentAge <= item.age) ||
+                                                 (idx === 2 && result.pyramids[1] && currentAge > result.pyramids[1].age && currentAge <= item.age) ||
+                                                 (idx === 3 && result.pyramids[2] && currentAge > result.pyramids[2].age);
                                 return isCurrent 
                                   ? 'bg-mystic-gold/5 border-mystic-gold/30 shadow-[0_0_30px_rgba(250,204,21,0.05)]' 
                                   : 'bg-white/5 border-white/10';
@@ -955,11 +959,12 @@ ${result.advice.map(a => `- ${a}`).join('\n')}
                             }`}
                           >
                             {(() => {
-                              const currentAge = 2026 - new Date(birthDate).getFullYear();
+                              const birthYear = new Date(birthDate).getFullYear();
+                              const currentAge = isNaN(birthYear) ? 0 : 2026 - birthYear;
                               const isCurrent = (idx === 0 && currentAge <= item.age) ||
-                                               (idx === 1 && currentAge > result.pyramids[0].age && currentAge <= item.age) ||
-                                               (idx === 2 && currentAge > result.pyramids[1].age && currentAge <= item.age) ||
-                                               (idx === 3 && currentAge > result.pyramids[2].age);
+                                               (idx === 1 && result.pyramids[0] && currentAge > result.pyramids[0].age && currentAge <= item.age) ||
+                                               (idx === 2 && result.pyramids[1] && currentAge > result.pyramids[1].age && currentAge <= item.age) ||
+                                               (idx === 3 && result.pyramids[2] && currentAge > result.pyramids[2].age);
                               return isCurrent && (
                                 <div className="absolute top-0 left-0 w-1 h-full bg-mystic-gold" />
                               );

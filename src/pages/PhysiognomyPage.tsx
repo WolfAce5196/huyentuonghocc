@@ -7,6 +7,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { HistorySidebar } from '../components/HistorySidebar';
 import { saveHistory, HistoryItem, getHistory } from '../lib/history';
+import { useReading } from '../context/ReadingContext';
 import { DownloadModal, UserData } from '../components/DownloadModal';
 import { downloadAsFile } from '../lib/download';
 
