@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Loader2, Save, Share2, History as HistoryIcon, Calculator, User, Calendar, Info, TrendingUp, Pyramid, Layout, Moon, Sun, Star } from 'lucide-react';
+import { Sparkles, Loader2, Save, Share2, History as HistoryIcon, Calculator, User, Calendar, Info, TrendingUp, Pyramid, Layout, Moon, Sun, Star, Download, RefreshCw } from 'lucide-react';
 import { MODELS, SYSTEM_PROMPTS, safeGenerateContent, getCurrentContext } from '../lib/gemini';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -8,7 +8,8 @@ import { HistorySidebar } from '../components/HistorySidebar';
 import { saveHistory, HistoryItem } from '../lib/history';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, Cell } from 'recharts';
 import { useReading } from '../context/ReadingContext';
-import { RefreshCw } from 'lucide-react';
+import { DownloadModal, UserData } from '../components/DownloadModal';
+import { downloadAsFile } from '../lib/download';
 
 interface NumerologyResult {
   mainNumber: string;
@@ -31,6 +32,7 @@ export const NumerologyPage: React.FC = () => {
   const [result, setResult] = useState<NumerologyResult | null>(pageState.result || null);
   const [error, setError] = useState<string | null>(pageState.error || null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isDownloadOpen, setIsDownloadOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'core' | 'cycle' | 'pyramids'>(pageState.activeTab || 'overview');
   const [isMobile, setIsMobile] = useState(false);
@@ -116,6 +118,30 @@ export const NumerologyPage: React.FC = () => {
     setName(item.result.name);
     setBirthDate(item.result.birthDate);
     setResult(item.result.interpretation);
+    setActiveTab('overview');
+  };
+
+  const handleDownload = (userData: UserData) => {
+    if (!result) return;
+    const content = `
+SỐ CHỦ ĐẠO: ${result.mainNumber}
+
+TỔNG QUAN:
+${result.overview}
+
+CÁC CHỈ SỐ CỐT LÕI:
+${result.coreNumbers.map(c => `- ${c.name}: ${c.value}\n  ${c.meaning}`).join('\n')}
+
+ĐIỂM MẠNH:
+${result.strengths.map(s => `- ${s}`).join('\n')}
+
+ĐIỂM YẾU:
+${result.weaknesses.map(w => `- ${w}`).join('\n')}
+
+LỜI KHUYÊN:
+${result.advice.map(a => `- ${a}`).join('\n')}
+`;
+    downloadAsFile(content, 'than-so-hoc.txt', userData);
   };
 
   const getEnergyLevel = (personalYear: number) => {
@@ -244,6 +270,16 @@ export const NumerologyPage: React.FC = () => {
           >
             <HistoryIcon className="w-3.5 h-3.5 md:w-4 md:h-4" /> Lịch sử
           </motion.button>
+          {result && (
+            <motion.button
+              whileHover={{ scale: 1.05, backgroundColor: "rgba(255,255,255,0.1)" }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setIsDownloadOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-mystic-purple/20 rounded-full border border-mystic-purple/30 transition-all text-mystic-gold text-[10px] md:text-xs font-bold uppercase tracking-widest shadow-[0_0_15px_rgba(126,34,206,0.2)] hover:shadow-[0_0_20px_rgba(126,34,206,0.3)]"
+            >
+              <Download className="w-3.5 h-3.5 md:w-4 md:h-4" /> Tải Dữ Liệu
+            </motion.button>
+          )}
         </div>
       </div>
 
@@ -992,6 +1028,12 @@ export const NumerologyPage: React.FC = () => {
         isOpen={isHistoryOpen}
         onClose={() => setIsHistoryOpen(false)}
         onSelect={handleSelectHistory}
+      />
+      <DownloadModal
+        isOpen={isDownloadOpen}
+        onClose={() => setIsDownloadOpen(false)}
+        onDownload={handleDownload}
+        title="Thần Số Học"
       />
     </div>
   );

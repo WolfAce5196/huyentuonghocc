@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Hash, Sparkles, RefreshCw, Loader2, History as HistoryIcon } from 'lucide-react';
+import { Hash, Sparkles, RefreshCw, Loader2, History as HistoryIcon, Download } from 'lucide-react';
 import { ai, MODELS, SYSTEM_PROMPTS, safeGenerateContent, getCurrentContext } from '../lib/gemini';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
