@@ -10,6 +10,7 @@ import { saveHistory, HistoryItem } from '../lib/history';
 import { useReading } from '../context/ReadingContext';
 import { DownloadModal, UserData } from '../components/DownloadModal';
 import { downloadAsFile } from '../lib/download';
+import { downloadAsPDF } from '../lib/pdf';
 
 export const DivinationPage: React.FC = () => {
   const { states, updateState, resetState, startLoading, finishLoading } = useReading();
@@ -28,13 +29,13 @@ export const DivinationPage: React.FC = () => {
 
   // Sync with context
   useEffect(() => {
-    if (pageState.loading !== undefined) setLoading(pageState.loading);
-    if (pageState.result !== undefined) setResult(pageState.result);
-    if (pageState.error !== undefined) setError(pageState.error);
-    if (pageState.coins !== undefined) setCoins(pageState.coins);
-    if (pageState.question !== undefined) setQuestion(pageState.question);
-    if (pageState.tossCount !== undefined) setTossCount(pageState.tossCount);
-    if (pageState.resultType !== undefined) setResultType(pageState.resultType);
+    if (pageState.loading !== undefined && pageState.loading !== loading) setLoading(pageState.loading);
+    if (pageState.result !== undefined && pageState.result !== result) setResult(pageState.result);
+    if (pageState.error !== undefined && pageState.error !== error) setError(pageState.error);
+    if (pageState.coins !== undefined && JSON.stringify(pageState.coins) !== JSON.stringify(coins)) setCoins(pageState.coins);
+    if (pageState.question !== undefined && pageState.question !== question) setQuestion(pageState.question);
+    if (pageState.tossCount !== undefined && pageState.tossCount !== tossCount) setTossCount(pageState.tossCount);
+    if (pageState.resultType !== undefined && pageState.resultType !== resultType) setResultType(pageState.resultType);
   }, [pageState]);
 
   useEffect(() => {
@@ -147,9 +148,13 @@ export const DivinationPage: React.FC = () => {
     setResult(item.result.interpretation);
   };
 
-  const handleDownload = (userData: UserData) => {
+  const handleDownload = (userData: UserData, format: 'txt' | 'pdf') => {
     if (!result) return;
-    downloadAsFile(result, 'gieo-dai-am-duong.txt', userData);
+    if (format === 'pdf') {
+      downloadAsPDF('divination-result', 'gieo-dai-am-duong.pdf', userData);
+    } else {
+      downloadAsFile(result, 'gieo-dai-am-duong.txt', userData);
+    }
   };
 
   return (
@@ -292,6 +297,7 @@ export const DivinationPage: React.FC = () => {
         <AnimatePresence>
           {result && (
             <motion.div
+              id="divination-result"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="glass-morphism p-8 rounded-3xl border-mystic-gold/30 w-full"

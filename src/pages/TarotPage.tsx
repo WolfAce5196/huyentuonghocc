@@ -12,6 +12,7 @@ import { saveHistory, HistoryItem } from '../lib/history';
 import { useReading } from '../context/ReadingContext';
 import { DownloadModal, UserData } from '../components/DownloadModal';
 import { downloadAsFile } from '../lib/download';
+import { downloadAsPDF } from '../lib/pdf';
 
 export const TarotPage: React.FC = () => {
   const { states, updateState, resetState, startLoading, finishLoading } = useReading();
@@ -29,22 +30,19 @@ export const TarotPage: React.FC = () => {
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Sync with context - only when pageState changes from OUTSIDE (e.g. background finish)
+  // Sync with context - only when pageState changes from OUTSIDE (e.g. background finish or history select)
   useEffect(() => {
     if (pageState.loading !== undefined && pageState.loading !== loading) setLoading(pageState.loading);
     if (pageState.result !== undefined && pageState.result !== interpretation) setInterpretation(pageState.result);
     if (pageState.error !== undefined && pageState.error !== error) setError(pageState.error);
     if (pageState.mode !== undefined && pageState.mode !== mode) setMode(pageState.mode);
-    if (pageState.selectedCards !== undefined && pageState.selectedCards !== selectedCards) setSelectedCards(pageState.selectedCards);
+    if (pageState.selectedCards !== undefined && JSON.stringify(pageState.selectedCards) !== JSON.stringify(selectedCards)) {
+      setSelectedCards(pageState.selectedCards);
+    }
     if (pageState.revealedCount !== undefined && pageState.revealedCount !== revealedCount) setRevealedCount(pageState.revealedCount);
     if (pageState.question !== undefined && pageState.question !== question) setQuestion(pageState.question);
     if (pageState.topic !== undefined && pageState.topic !== topic) setTopic(pageState.topic);
   }, [pageState]);
-
-  // Update context when local state changes
-  useEffect(() => {
-    updateState('tarot', { mode, selectedCards, result: interpretation, error, revealedCount, question, topic });
-  }, [mode, selectedCards, interpretation, error, revealedCount, question, topic]);
 
   useEffect(() => {
     if (interpretation) {
@@ -81,13 +79,13 @@ export const TarotPage: React.FC = () => {
     setRevealedCount(0);
     setInterpretation(null);
     setError(null);
-
-    updateState('tarot', {
-      mode: newMode,
-      selectedCards: drawn,
-      revealedCount: 0,
-      result: null,
-      error: null
+    
+    updateState('tarot', { 
+      mode: newMode, 
+      selectedCards: drawn, 
+      revealedCount: 0, 
+      result: null, 
+      error: null 
     });
   };
 
@@ -173,9 +171,13 @@ export const TarotPage: React.FC = () => {
     });
   };
 
-  const handleDownload = (userData: UserData) => {
+  const handleDownload = (userData: UserData, format: 'txt' | 'pdf') => {
     if (!interpretation) return;
-    downloadAsFile(interpretation, 'tarot.txt', userData);
+    if (format === 'pdf') {
+      downloadAsPDF('tarot-result', 'luan-giai-tarot.pdf', userData);
+    } else {
+      downloadAsFile(interpretation, 'tarot.txt', userData);
+    }
   };
 
   return (
@@ -235,7 +237,6 @@ export const TarotPage: React.FC = () => {
                   value={question}
                   onChange={(e) => {
                     setQuestion(e.target.value);
-                    updateState('tarot', { question: e.target.value });
                   }}
                   placeholder="Ví dụ: Công việc sắp tới của tôi thế nào?..."
                   className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-mystic-gold outline-none transition-all text-sm md:text-base"
@@ -249,7 +250,6 @@ export const TarotPage: React.FC = () => {
                   value={topic}
                   onChange={(e) => {
                     setTopic(e.target.value);
-                    updateState('tarot', { topic: e.target.value });
                   }}
                   className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-mystic-gold outline-none transition-all appearance-none cursor-pointer text-sm md:text-base"
                 >
@@ -331,6 +331,7 @@ export const TarotPage: React.FC = () => {
 
             {interpretation && (
               <motion.div
+                id="tarot-result"
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="glass-morphism p-6 md:p-12 rounded-3xl border-mystic-gold/30 max-w-5xl mx-auto shadow-[0_0_50px_rgba(126,34,206,0.1)]"

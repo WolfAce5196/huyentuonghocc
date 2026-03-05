@@ -10,6 +10,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useReading } from '../context/ReadingContext';
 import { DownloadModal, UserData } from '../components/DownloadModal';
 import { downloadAsFile } from '../lib/download';
+import { downloadAsPDF } from '../lib/pdf';
 import { extractJSON } from '../lib/utils';
 
 interface NumerologyResult {
@@ -40,12 +41,12 @@ export const NumerologyPage: React.FC = () => {
 
   // Sync with context
   useEffect(() => {
-    if (pageState.loading !== undefined) setLoading(pageState.loading);
-    if (pageState.result !== undefined) setResult(pageState.result);
-    if (pageState.error !== undefined) setError(pageState.error);
-    if (pageState.name !== undefined) setName(pageState.name);
-    if (pageState.birthDate !== undefined) setBirthDate(pageState.birthDate);
-    if (pageState.activeTab !== undefined) setActiveTab(pageState.activeTab);
+    if (pageState.loading !== undefined && pageState.loading !== loading) setLoading(pageState.loading);
+    if (pageState.result !== undefined && JSON.stringify(pageState.result) !== JSON.stringify(result)) setResult(pageState.result);
+    if (pageState.error !== undefined && pageState.error !== error) setError(pageState.error);
+    if (pageState.name !== undefined && pageState.name !== name) setName(pageState.name);
+    if (pageState.birthDate !== undefined && pageState.birthDate !== birthDate) setBirthDate(pageState.birthDate);
+    if (pageState.activeTab !== undefined && pageState.activeTab !== activeTab) setActiveTab(pageState.activeTab);
   }, [pageState]);
 
   useEffect(() => {
@@ -131,9 +132,12 @@ export const NumerologyPage: React.FC = () => {
     });
   };
 
-  const handleDownload = (userData: UserData) => {
+  const handleDownload = (userData: UserData, format: 'txt' | 'pdf') => {
     if (!result) return;
-    const content = `
+    if (format === 'pdf') {
+      downloadAsPDF('numerology-result', 'than-so-hoc.pdf', userData);
+    } else {
+      const content = `
 SỐ CHỦ ĐẠO: ${result.mainNumber}
 
 TỔNG QUAN:
@@ -151,7 +155,8 @@ ${result.weaknesses.map(w => `- ${w}`).join('\n')}
 LỜI KHUYÊN:
 ${result.advice.map(a => `- ${a}`).join('\n')}
 `;
-    downloadAsFile(content, 'than-so-hoc.txt', userData);
+      downloadAsFile(content, 'than-so-hoc.txt', userData);
+    }
   };
 
   const getEnergyLevel = (personalYear: number) => {
@@ -379,6 +384,7 @@ ${result.advice.map(a => `- ${a}`).join('\n')}
             </motion.div>
           ) : result ? (
             <motion.div
+              id="numerology-result"
               key="result"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}

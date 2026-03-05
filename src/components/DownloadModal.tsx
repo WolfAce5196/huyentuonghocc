@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Download, User, Phone, Mail, ChevronRight } from 'lucide-react';
+import { X, Download, User, Phone, Mail, ChevronRight, FileText, FileJson } from 'lucide-react';
 
 interface DownloadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onDownload: (userData: UserData) => void;
+  onDownload: (userData: UserData, format: 'txt' | 'pdf') => void;
   title: string;
 }
 
@@ -34,6 +34,7 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose, o
     email: [],
   });
 
+  const [downloadFormat, setDownloadFormat] = useState<'txt' | 'pdf'>('pdf');
   const [activeField, setActiveField] = useState<keyof UserData | null>(null);
 
   useEffect(() => {
@@ -60,7 +61,7 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose, o
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     saveToSuggestions(formData);
-    onDownload(formData);
+    onDownload(formData, downloadFormat);
     onClose();
   };
 
@@ -191,6 +192,38 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose, o
                     ))}
                   </div>
                 )}
+              </div>
+
+              <div className="relative">
+                <label className="block text-xs font-bold text-mystic-gold uppercase tracking-widest mb-3 flex items-center gap-2">
+                  Định dạng tải về
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setDownloadFormat('pdf')}
+                    className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${
+                      downloadFormat === 'pdf'
+                        ? 'bg-mystic-gold/20 border-mystic-gold text-mystic-gold'
+                        : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
+                    }`}
+                  >
+                    <FileJson className="w-4 h-4" />
+                    <span className="text-xs font-bold">PDF (Đẹp)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDownloadFormat('txt')}
+                    className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${
+                      downloadFormat === 'txt'
+                        ? 'bg-mystic-gold/20 border-mystic-gold text-mystic-gold'
+                        : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
+                    }`}
+                  >
+                    <FileText className="w-4 h-4" />
+                    <span className="text-xs font-bold">TXT (Cơ bản)</span>
+                  </button>
+                </div>
               </div>
 
               <button

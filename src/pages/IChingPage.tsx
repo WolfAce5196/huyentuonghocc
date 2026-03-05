@@ -9,6 +9,7 @@ import { saveHistory, HistoryItem } from '../lib/history';
 import { useReading } from '../context/ReadingContext';
 import { DownloadModal, UserData } from '../components/DownloadModal';
 import { downloadAsFile } from '../lib/download';
+import { downloadAsPDF } from '../lib/pdf';
 import { extractJSON } from '../lib/utils';
 
 export const IChingPage: React.FC = () => {
@@ -31,15 +32,15 @@ export const IChingPage: React.FC = () => {
 
   // Sync with context
   useEffect(() => {
-    if (pageState.loading !== undefined) setLoading(pageState.loading);
-    if (pageState.result !== undefined) setResult(pageState.result);
-    if (pageState.error !== undefined) setError(pageState.error);
-    if (pageState.lines !== undefined) setLines(pageState.lines);
-    if (pageState.hexNumber !== undefined) setHexNumber(pageState.hexNumber);
-    if (pageState.hexName !== undefined) setHexName(pageState.hexName);
-    if (pageState.generatedImageUrl !== undefined) setGeneratedImageUrl(pageState.generatedImageUrl);
-    if (pageState.question !== undefined) setQuestion(pageState.question);
-    if (pageState.startTime !== undefined) setStartTime(pageState.startTime);
+    if (pageState.loading !== undefined && pageState.loading !== loading) setLoading(pageState.loading);
+    if (pageState.result !== undefined && pageState.result !== result) setResult(pageState.result);
+    if (pageState.error !== undefined && pageState.error !== error) setError(pageState.error);
+    if (pageState.lines !== undefined && JSON.stringify(pageState.lines) !== JSON.stringify(lines)) setLines(pageState.lines);
+    if (pageState.hexNumber !== undefined && pageState.hexNumber !== hexNumber) setHexNumber(pageState.hexNumber);
+    if (pageState.hexName !== undefined && pageState.hexName !== hexName) setHexName(pageState.hexName);
+    if (pageState.generatedImageUrl !== undefined && pageState.generatedImageUrl !== generatedImageUrl) setGeneratedImageUrl(pageState.generatedImageUrl);
+    if (pageState.question !== undefined && pageState.question !== question) setQuestion(pageState.question);
+    if (pageState.startTime !== undefined && pageState.startTime !== startTime) setStartTime(pageState.startTime);
   }, [pageState]);
 
   useEffect(() => {
@@ -196,9 +197,13 @@ export const IChingPage: React.FC = () => {
     setGeneratedImageUrl(null);
   };
 
-  const handleDownload = (userData: UserData) => {
+  const handleDownload = (userData: UserData, format: 'txt' | 'pdf') => {
     if (!result) return;
-    downloadAsFile(result, 'kinh-dich.txt', userData);
+    if (format === 'pdf') {
+      downloadAsPDF('iching-result', 'gieo-que-kinh-dich.pdf', userData);
+    } else {
+      downloadAsFile(result, 'kinh-dich.txt', userData);
+    }
   };
 
   return (
@@ -340,6 +345,7 @@ export const IChingPage: React.FC = () => {
               </motion.div>
             ) : result ? (
               <motion.div
+                id="iching-result"
                 key="result"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}

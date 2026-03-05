@@ -10,6 +10,7 @@ import { saveHistory, HistoryItem, getHistory } from '../lib/history';
 import { useReading } from '../context/ReadingContext';
 import { DownloadModal, UserData } from '../components/DownloadModal';
 import { downloadAsFile } from '../lib/download';
+import { downloadAsPDF } from '../lib/pdf';
 
 export const PhysiognomyPage: React.FC = () => {
   const { states, updateState, resetState, startLoading, finishLoading } = useReading();
@@ -26,11 +27,11 @@ export const PhysiognomyPage: React.FC = () => {
 
   // Sync with context
   useEffect(() => {
-    if (pageState.loading !== undefined) setLoading(pageState.loading);
-    if (pageState.result !== undefined) setResult(pageState.result);
-    if (pageState.error !== undefined) setError(pageState.error);
-    if (pageState.image !== undefined) setImage(pageState.image);
-  }, [pageState.loading, pageState.result, pageState.error, pageState.image]);
+    if (pageState.loading !== undefined && pageState.loading !== loading) setLoading(pageState.loading);
+    if (pageState.result !== undefined && pageState.result !== result) setResult(pageState.result);
+    if (pageState.error !== undefined && pageState.error !== error) setError(pageState.error);
+    if (pageState.image !== undefined && pageState.image !== image) setImage(pageState.image);
+  }, [pageState.loading, pageState.result, pageState.error, pageState.image, loading, result, error, image]);
 
   useEffect(() => {
     if (result) {
@@ -130,9 +131,13 @@ export const PhysiognomyPage: React.FC = () => {
     setResult(item.result.interpretation);
   };
 
-  const handleDownload = (userData: UserData) => {
+  const handleDownload = (userData: UserData, format: 'txt' | 'pdf') => {
     if (!result) return;
-    downloadAsFile(result, 'nhan-tuong-hoc.txt', userData);
+    if (format === 'pdf') {
+      downloadAsPDF('physiognomy-result', 'nhan-tuong-hoc.pdf', userData);
+    } else {
+      downloadAsFile(result, 'nhan-tuong-hoc.txt', userData);
+    }
   };
 
   return (
@@ -281,6 +286,7 @@ export const PhysiognomyPage: React.FC = () => {
               </motion.div>
             ) : result ? (
               <motion.div
+                id="physiognomy-result"
                 key="result"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
