@@ -38,6 +38,11 @@ export const TarotPage: React.FC = () => {
     if (pageState.topic !== undefined && pageState.topic !== topic) setTopic(pageState.topic);
   }, [pageState]);
 
+  // Update context when local state changes
+  useEffect(() => {
+    updateState('tarot', { mode, selectedCards, result: interpretation, error, revealedCount, question, topic });
+  }, [mode, selectedCards, interpretation, error, revealedCount, question, topic]);
+
   useEffect(() => {
     if (interpretation) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -73,20 +78,11 @@ export const TarotPage: React.FC = () => {
     setRevealedCount(0);
     setInterpretation(null);
     setError(null);
-    
-    updateState('tarot', { 
-      mode: newMode,
-      selectedCards: drawn, 
-      revealedCount: 0, 
-      result: null, 
-      error: null 
-    });
   };
 
   const handleReveal = () => {
     setRevealedCount(prev => {
       const nextCount = prev + 1;
-      updateState('tarot', { revealedCount: nextCount });
       if (nextCount === selectedCards.length) {
         analyzeReading();
       }
