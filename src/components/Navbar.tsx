@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, Home, User, CreditCard, Hash, Coins, Menu, X } from 'lucide-react';
+import { Eye, Home, User, CreditCard, Hash, Coins, Menu, X, Sparkles } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 const navItems = [
@@ -9,7 +9,7 @@ const navItems = [
   { name: 'Xem Nhân Tướng', path: '/physiognomy', icon: User },
   { name: 'Bốc Bài Tarot', path: '/tarot', icon: CreditCard },
   { name: 'Thần Số Học', path: '/numerology', icon: Hash },
-  { name: 'Gieo Quẻ Kinh Dịch', path: '/iching', icon: Hash },
+  { name: 'Gieo Quẻ Kinh Dịch', path: '/iching', icon: Sparkles },
   { name: 'Gieo Đài Âm Dương', path: '/divination', icon: Coins },
 ];
 

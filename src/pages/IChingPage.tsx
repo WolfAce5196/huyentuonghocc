@@ -9,6 +9,7 @@ import { saveHistory, HistoryItem } from '../lib/history';
 import { useReading } from '../context/ReadingContext';
 import { DownloadModal, UserData } from '../components/DownloadModal';
 import { downloadAsFile } from '../lib/download';
+import { extractJSON } from '../lib/utils';
 
 export const IChingPage: React.FC = () => {
   const { states, updateState, resetState, startLoading, finishLoading } = useReading();
@@ -68,16 +69,20 @@ export const IChingPage: React.FC = () => {
     
     if (lines.length === 0) {
       const now = new Date();
-      setStartTime(now.toLocaleString('vi-VN'));
+      const timeStr = now.toLocaleString('vi-VN');
+      setStartTime(timeStr);
+      updateState('iching', { startTime: timeStr });
     }
 
     // 0: Yin (broken), 1: Yang (solid)
     const newLine = Math.random() > 0.5 ? 1 : 0;
-    setLines([...lines, newLine]);
+    const newLines = [...lines, newLine];
+    setLines(newLines);
+    updateState('iching', { lines: newLines });
     setError(null);
     
-    if (lines.length === 5) {
-      analyzeHexagram([...lines, newLine]);
+    if (newLines.length === 6) {
+      analyzeHexagram(newLines);
     }
   };
 
@@ -102,7 +107,8 @@ export const IChingPage: React.FC = () => {
         config: { responseMimeType: "application/json" }
       });
       
-      const data = JSON.parse(response.text || "{}");
+      const resultTextRaw = response.text || "";
+      const data = extractJSON(resultTextRaw) || {};
       const resultText = data.interpretation || "Không thể giải quẻ.";
       const hNum = data.hexagramNumber || null;
       const hName = data.hexagramName || null;
@@ -245,7 +251,10 @@ export const IChingPage: React.FC = () => {
           <input 
             type="text" 
             value={question}
-            onChange={(e) => setQuestion(e.target.value)}
+            onChange={(e) => {
+              setQuestion(e.target.value);
+              updateState('iching', { question: e.target.value });
+            }}
             placeholder="Nhập vấn đề bạn muốn xin quẻ..."
             className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-mystic-gold outline-none transition-all text-sm md:text-base"
           />

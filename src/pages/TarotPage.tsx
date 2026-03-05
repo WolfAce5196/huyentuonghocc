@@ -81,11 +81,20 @@ export const TarotPage: React.FC = () => {
     setRevealedCount(0);
     setInterpretation(null);
     setError(null);
+
+    updateState('tarot', {
+      mode: newMode,
+      selectedCards: drawn,
+      revealedCount: 0,
+      result: null,
+      error: null
+    });
   };
 
   const handleReveal = () => {
     setRevealedCount(prev => {
       const nextCount = prev + 1;
+      updateState('tarot', { revealedCount: nextCount });
       if (nextCount === selectedCards.length) {
         analyzeReading();
       }

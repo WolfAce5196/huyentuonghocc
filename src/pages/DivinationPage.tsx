@@ -66,6 +66,7 @@ export const DivinationPage: React.FC = () => {
     startLoading('divination');
     const newTossCount = tossCount + 1;
     setTossCount(newTossCount);
+    updateState('divination', { tossCount: newTossCount });
     
     // Simulate coin toss
     const newCoins: ('head' | 'tail')[] = [
@@ -73,6 +74,7 @@ export const DivinationPage: React.FC = () => {
       Math.random() > 0.5 ? 'head' : 'tail'
     ];
     setCoins(newCoins);
+    updateState('divination', { coins: newCoins });
 
     // Determine result type
     let type = "";
@@ -94,6 +96,7 @@ export const DivinationPage: React.FC = () => {
       typeName = "ÂM ĐÀI (KHÔNG ĐƯỢC)";
     }
     setResultType(typeName);
+    updateState('divination', { resultType: typeName });
 
     try {
       const prompt = `Tôi vừa gieo đài âm dương và nhận được kết quả: ${type}. 
@@ -200,7 +203,10 @@ export const DivinationPage: React.FC = () => {
             <input 
               type="text" 
               value={question}
-              onChange={(e) => setQuestion(e.target.value)}
+              onChange={(e) => {
+                setQuestion(e.target.value);
+                updateState('divination', { question: e.target.value });
+              }}
               placeholder="Nhập vấn đề bạn muốn xin đài..."
               className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-mystic-gold outline-none transition-all text-sm md:text-base"
             />

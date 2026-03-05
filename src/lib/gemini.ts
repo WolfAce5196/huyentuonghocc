@@ -4,13 +4,13 @@ const apiKey = process.env.GEMINI_API_KEY || "";
 export const ai = new GoogleGenAI({ apiKey });
 
 export const MODELS = {
-  TEXT: "gemini-3-flash-preview",
-  VISION: "gemini-3-flash-preview",
+  TEXT: "gemini-3.1-pro-preview",
+  VISION: "gemini-3.1-pro-preview",
   IMAGE: "gemini-2.5-flash-image",
 };
 
-export async function safeGenerateContent(params: any, maxRetries = 3) {
-  let delay = 2000;
+export async function safeGenerateContent(params: any, maxRetries = 5) {
+  let delay = 3000;
   for (let i = 0; i < maxRetries; i++) {
     try {
       return await ai.models.generateContent(params);
@@ -27,7 +27,7 @@ export async function safeGenerateContent(params: any, maxRetries = 3) {
       throw error;
     }
   }
-  throw new Error("Failed to generate content after multiple retries.");
+  throw new Error("Hệ thống đang bận xử lý quá nhiều yêu cầu. Vui lòng thử lại sau ít phút.");
 }
 
 export const getCurrentContext = () => {

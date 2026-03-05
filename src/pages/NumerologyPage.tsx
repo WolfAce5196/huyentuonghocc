@@ -10,6 +10,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useReading } from '../context/ReadingContext';
 import { DownloadModal, UserData } from '../components/DownloadModal';
 import { downloadAsFile } from '../lib/download';
+import { extractJSON } from '../lib/utils';
 
 interface NumerologyResult {
   mainNumber: string;
@@ -86,9 +87,11 @@ export const NumerologyPage: React.FC = () => {
 
       const resultText = response.text || "";
       try {
-        const parsedResult = JSON.parse(resultText) as NumerologyResult;
+        const parsedResult = extractJSON(resultText) as NumerologyResult;
         
-        // Save to history
+        if (!parsedResult || !parsedResult.mainNumber) {
+          throw new Error("Invalid structure");
+        }
         saveHistory({
           type: 'numerology',
           title: `Thần Số Học: ${name} (${birthDate})`,
@@ -119,6 +122,13 @@ export const NumerologyPage: React.FC = () => {
     setBirthDate(item.result.birthDate);
     setResult(item.result.interpretation);
     setActiveTab('overview');
+    
+    updateState('numerology', {
+      name: item.result.name,
+      birthDate: item.result.birthDate,
+      result: item.result.interpretation,
+      activeTab: 'overview'
+    });
   };
 
   const handleDownload = (userData: UserData) => {
@@ -297,7 +307,10 @@ ${result.advice.map(a => `- ${a}`).join('\n')}
             <input
               type="text"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {
+                setName(e.target.value);
+                updateState('numerology', { name: e.target.value });
+              }}
               placeholder="Ví dụ: Nguyễn Văn A"
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-mystic-gold outline-none transition-colors"
             />
@@ -310,7 +323,10 @@ ${result.advice.map(a => `- ${a}`).join('\n')}
             <input
               type="date"
               value={birthDate}
-              onChange={(e) => setBirthDate(e.target.value)}
+              onChange={(e) => {
+                setBirthDate(e.target.value);
+                updateState('numerology', { birthDate: e.target.value });
+              }}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-mystic-gold outline-none transition-colors"
             />
           </div>
@@ -401,7 +417,10 @@ ${result.advice.map(a => `- ${a}`).join('\n')}
                 ].map((tab) => (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
+                    onClick={() => {
+                      setActiveTab(tab.id as any);
+                      updateState('numerology', { activeTab: tab.id as any });
+                    }}
                     className={`flex items-center justify-center gap-2 px-3 md:px-6 py-2.5 md:py-3 rounded-xl font-bold text-[10px] md:text-sm transition-all ${
                       activeTab === tab.id 
                         ? 'bg-mystic-purple text-white shadow-lg shadow-mystic-purple/20' 

@@ -77,7 +77,7 @@ export const PhysiognomyPage: React.FC = () => {
 
       if (history.length > 0) {
         parts.push({ text: "DỮ LIỆU QUÁ KHỨ (CHỈ DÙNG ĐỂ ĐỐI CHIẾU NHẤT QUÁN, KHÔNG HIỂN THỊ TRONG KẾT QUẢ):" });
-        history.forEach((item, index) => {
+        history.slice(-2).forEach((item, index) => {
           const histBase64 = item.result.image.split(',')[1];
           parts.push({
             inlineData: {
