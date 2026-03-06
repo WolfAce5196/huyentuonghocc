@@ -9,7 +9,7 @@ import { saveHistory, HistoryItem } from '../lib/history';
 import { useReading } from '../context/ReadingContext';
 import { DownloadModal, UserData } from '../components/DownloadModal';
 import { downloadAsFile } from '../lib/download';
-import { downloadAsPDF } from '../lib/pdf';
+import { downloadIChingPDF, preRenderPDFContent } from '../lib/pdf';
 import { extractJSON } from '../lib/utils';
 
 export const IChingPage: React.FC = () => {
@@ -28,6 +28,7 @@ export const IChingPage: React.FC = () => {
   const [startTime, setStartTime] = useState<string | null>(pageState.startTime || null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
+  const [preRenderedPDF, setPreRenderedPDF] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Sync with context
@@ -48,6 +49,27 @@ export const IChingPage: React.FC = () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, [result]);
+
+  useEffect(() => {
+    if (result && hexNumber && !preRenderedPDF) {
+      const timer = setTimeout(async () => {
+        try {
+          const hexImage = `https://raw.githubusercontent.com/pete-otaqui/iching/master/images/hexagrams/${hexNumber}.png`;
+          const resources = [
+            { type: 'image' as const, content: hexImage, label: 'Hình tượng quẻ dịch' }
+          ];
+          if (generatedImageUrl) {
+            resources.push({ type: 'image' as const, content: generatedImageUrl, label: 'Minh họa AI' });
+          }
+          const imgData = await preRenderPDFContent('Luận Giải Kinh Dịch', result, resources);
+          setPreRenderedPDF(imgData);
+        } catch (err) {
+          console.error("Pre-render failed:", err);
+        }
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [result, hexNumber, generatedImageUrl, preRenderedPDF]);
 
   const handleReset = () => {
     setIsRefreshing(true);
@@ -200,7 +222,8 @@ export const IChingPage: React.FC = () => {
   const handleDownload = (userData: UserData, format: 'txt' | 'pdf') => {
     if (!result) return;
     if (format === 'pdf') {
-      downloadAsPDF('iching-result', 'gieo-que-kinh-dich.pdf', userData);
+      const hexImage = `https://raw.githubusercontent.com/pete-otaqui/iching/master/images/hexagrams/${hexNumber}.png`;
+      downloadIChingPDF(userData, result, hexImage, generatedImageUrl || undefined, preRenderedPDF || undefined);
     } else {
       downloadAsFile(result, 'kinh-dich.txt', userData);
     }

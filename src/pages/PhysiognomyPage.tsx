@@ -10,7 +10,7 @@ import { saveHistory, HistoryItem, getHistory } from '../lib/history';
 import { useReading } from '../context/ReadingContext';
 import { DownloadModal, UserData } from '../components/DownloadModal';
 import { downloadAsFile } from '../lib/download';
-import { downloadAsPDF } from '../lib/pdf';
+import { downloadPhysiognomyPDF, preRenderPDFContent } from '../lib/pdf';
 
 export const PhysiognomyPage: React.FC = () => {
   const { states, updateState, resetState, startLoading, finishLoading } = useReading();
@@ -22,6 +22,7 @@ export const PhysiognomyPage: React.FC = () => {
   const [error, setError] = useState<string | null>(pageState.error || null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
+  const [preRenderedPDF, setPreRenderedPDF] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -38,6 +39,23 @@ export const PhysiognomyPage: React.FC = () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, [result]);
+
+  useEffect(() => {
+    if (result && image && !preRenderedPDF) {
+      const timer = setTimeout(async () => {
+        try {
+          const resources = [
+            { type: 'image' as const, content: image, label: 'Hình ảnh nhân tướng' }
+          ];
+          const imgData = await preRenderPDFContent('Luận Giải Nhân Tướng Học', result, resources);
+          setPreRenderedPDF(imgData);
+        } catch (err) {
+          console.error("Pre-render failed:", err);
+        }
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [result, image, preRenderedPDF]);
 
   const handleReset = () => {
     setIsRefreshing(true);
@@ -132,9 +150,9 @@ export const PhysiognomyPage: React.FC = () => {
   };
 
   const handleDownload = (userData: UserData, format: 'txt' | 'pdf') => {
-    if (!result) return;
+    if (!result || !image) return;
     if (format === 'pdf') {
-      downloadAsPDF('physiognomy-result', 'nhan-tuong-hoc.pdf', userData);
+      downloadPhysiognomyPDF(userData, result, image, preRenderedPDF || undefined);
     } else {
       downloadAsFile(result, 'nhan-tuong-hoc.txt', userData);
     }

@@ -10,7 +10,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useReading } from '../context/ReadingContext';
 import { DownloadModal, UserData } from '../components/DownloadModal';
 import { downloadAsFile } from '../lib/download';
-import { downloadAsPDF } from '../lib/pdf';
+import { downloadNumerologyPDF, preRenderPDFContent } from '../lib/pdf';
 import { extractJSON } from '../lib/utils';
 
 interface NumerologyResult {
@@ -35,6 +35,7 @@ export const NumerologyPage: React.FC = () => {
   const [error, setError] = useState<string | null>(pageState.error || null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
+  const [preRenderedPDF, setPreRenderedPDF] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'core' | 'cycle' | 'pyramids'>(pageState.activeTab || 'overview');
   const [isMobile, setIsMobile] = useState(false);
@@ -55,6 +56,38 @@ export const NumerologyPage: React.FC = () => {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  useEffect(() => {
+    if (result && !preRenderedPDF) {
+      const timer = setTimeout(async () => {
+        try {
+          const content = `
+SỐ CHỦ ĐẠO: ${result.mainNumber}
+
+TỔNG QUAN:
+${result.overview}
+
+CÁC CHỈ SỐ CỐT LÕI:
+${result.coreNumbers.map(c => `- ${c.name}: ${c.value}\n  ${c.meaning}`).join('\n')}
+
+ĐIỂM MẠNH:
+${result.strengths.map(s => `- ${s}`).join('\n')}
+
+ĐIỂM YẾU:
+${result.weaknesses.map(w => `- ${w}`).join('\n')}
+
+LỜI KHUYÊN:
+${result.advice.map(a => `- ${a}`).join('\n')}
+`;
+          const imgData = await preRenderPDFContent('Luận Giải Thần Số Học', content);
+          setPreRenderedPDF(imgData);
+        } catch (err) {
+          console.error("Pre-render failed:", err);
+        }
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [result, preRenderedPDF]);
 
   const handleReset = () => {
     setIsRefreshing(true);
@@ -135,7 +168,25 @@ export const NumerologyPage: React.FC = () => {
   const handleDownload = (userData: UserData, format: 'txt' | 'pdf') => {
     if (!result) return;
     if (format === 'pdf') {
-      downloadAsPDF('numerology-result', 'than-so-hoc.pdf', userData);
+      const content = `
+SỐ CHỦ ĐẠO: ${result.mainNumber}
+
+TỔNG QUAN:
+${result.overview}
+
+CÁC CHỈ SỐ CỐT LÕI:
+${result.coreNumbers.map(c => `- ${c.name}: ${c.value}\n  ${c.meaning}`).join('\n')}
+
+ĐIỂM MẠNH:
+${result.strengths.map(s => `- ${s}`).join('\n')}
+
+ĐIỂM YẾU:
+${result.weaknesses.map(w => `- ${w}`).join('\n')}
+
+LỜI KHUYÊN:
+${result.advice.map(a => `- ${a}`).join('\n')}
+`;
+      downloadNumerologyPDF(userData, content, preRenderedPDF || undefined);
     } else {
       const content = `
 SỐ CHỦ ĐẠO: ${result.mainNumber}

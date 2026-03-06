@@ -10,7 +10,7 @@ import { saveHistory, HistoryItem } from '../lib/history';
 import { useReading } from '../context/ReadingContext';
 import { DownloadModal, UserData } from '../components/DownloadModal';
 import { downloadAsFile } from '../lib/download';
-import { downloadAsPDF } from '../lib/pdf';
+import { downloadDivinationPDF, preRenderPDFContent } from '../lib/pdf';
 
 export const DivinationPage: React.FC = () => {
   const { states, updateState, resetState, startLoading, finishLoading } = useReading();
@@ -25,6 +25,7 @@ export const DivinationPage: React.FC = () => {
   const [resultType, setResultType] = useState<string | null>(pageState.resultType || null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
+  const [preRenderedPDF, setPreRenderedPDF] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Sync with context
@@ -43,6 +44,20 @@ export const DivinationPage: React.FC = () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, [result]);
+
+  useEffect(() => {
+    if (result && !preRenderedPDF) {
+      const timer = setTimeout(async () => {
+        try {
+          const imgData = await preRenderPDFContent('Luận Giải Gieo Quẻ Âm Dương', result);
+          setPreRenderedPDF(imgData);
+        } catch (err) {
+          console.error("Pre-render failed:", err);
+        }
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [result, preRenderedPDF]);
 
   const handleReset = () => {
     setIsRefreshing(true);
@@ -151,7 +166,7 @@ export const DivinationPage: React.FC = () => {
   const handleDownload = (userData: UserData, format: 'txt' | 'pdf') => {
     if (!result) return;
     if (format === 'pdf') {
-      downloadAsPDF('divination-result', 'gieo-dai-am-duong.pdf', userData);
+      downloadDivinationPDF(userData, result, preRenderedPDF || undefined);
     } else {
       downloadAsFile(result, 'gieo-dai-am-duong.txt', userData);
     }

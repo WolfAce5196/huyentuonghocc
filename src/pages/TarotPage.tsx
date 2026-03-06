@@ -12,7 +12,7 @@ import { saveHistory, HistoryItem } from '../lib/history';
 import { useReading } from '../context/ReadingContext';
 import { DownloadModal, UserData } from '../components/DownloadModal';
 import { downloadAsFile } from '../lib/download';
-import { downloadAsPDF } from '../lib/pdf';
+import { downloadTarotPDF, preRenderPDFContent } from '../lib/pdf';
 
 export const TarotPage: React.FC = () => {
   const { states, updateState, resetState, startLoading, finishLoading } = useReading();
@@ -28,6 +28,7 @@ export const TarotPage: React.FC = () => {
   const [topic, setTopic] = useState(pageState.topic || 'Tổng quan');
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
+  const [preRenderedPDF, setPreRenderedPDF] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Sync with context - only when pageState changes from OUTSIDE (e.g. background finish or history select)
@@ -49,6 +50,25 @@ export const TarotPage: React.FC = () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, [interpretation]);
+
+  useEffect(() => {
+    if (interpretation && selectedCards.length > 0 && !preRenderedPDF) {
+      const timer = setTimeout(async () => {
+        try {
+          const resources = selectedCards.map(card => ({
+            type: 'image' as const,
+            content: card.image,
+            label: card.name
+          }));
+          const imgData = await preRenderPDFContent('Luận Giải Bài Tarot', interpretation, resources);
+          setPreRenderedPDF(imgData);
+        } catch (err) {
+          console.error("Pre-render failed:", err);
+        }
+      }, 1000); // Wait for animations to settle
+      return () => clearTimeout(timer);
+    }
+  }, [interpretation, selectedCards, preRenderedPDF]);
 
   const handleReset = () => {
     setIsRefreshing(true);
@@ -174,7 +194,11 @@ export const TarotPage: React.FC = () => {
   const handleDownload = (userData: UserData, format: 'txt' | 'pdf') => {
     if (!interpretation) return;
     if (format === 'pdf') {
-      downloadAsPDF('tarot-result', 'luan-giai-tarot.pdf', userData);
+      const cards = selectedCards.map(c => ({
+        name: c.card.name_vi,
+        image: c.card.image
+      }));
+      downloadTarotPDF(userData, interpretation, cards, preRenderedPDF || undefined);
     } else {
       downloadAsFile(interpretation, 'tarot.txt', userData);
     }
