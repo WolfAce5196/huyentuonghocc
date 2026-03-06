@@ -61,22 +61,22 @@ export const HomePage: React.FC = () => {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_20%,#050505_100%)]" />
       </div>
 
-      <div className="relative z-10 max-w-6xl mx-auto text-center py-12 md:py-20 mt-12 md:mt-24">
+      <div className="relative z-10 max-w-6xl mx-auto text-center py-6 md:py-12 lg:py-20 mt-8 md:mt-16 lg:mt-24">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, ease: "easeOut" }}
         >
-          <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-serif font-bold mb-6 md:mb-8 text-mystic-gold tracking-tight relative px-4">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-8xl font-serif font-bold mb-4 md:mb-6 lg:mb-8 text-mystic-gold tracking-tight relative px-4">
             <span className="drop-shadow-[0_0_30px_rgba(212,175,55,0.5)]">
               Huyền Tướng Học
             </span>
           </h1>
-          <p className="text-gray-300 text-sm md:text-xl max-w-3xl mx-auto mb-10 md:mb-20 font-light tracking-wide leading-relaxed opacity-90 px-6">
+          <p className="text-gray-300 text-xs sm:text-base md:text-lg lg:text-xl max-w-3xl mx-auto mb-6 md:mb-10 lg:mb-20 font-light tracking-wide leading-relaxed opacity-90 px-6">
             Khám phá bí ẩn vận mệnh qua nhân tướng, bài Tarot, Kinh Dịch và thuật âm dương cổ truyền.
           </p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 px-4">
+ 
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-8 px-4 justify-center">
             {[
               { title: 'Xem Nhân Tướng', desc: 'Đọc vị khuôn mặt qua AI Vision', path: '/physiognomy', color: 'purple' },
               { title: 'Bốc Bài Tarot', desc: 'Giải mã 78 lá bài huyền bí', path: '/tarot', color: 'gold' },
@@ -84,11 +84,11 @@ export const HomePage: React.FC = () => {
               { title: 'Gieo Quẻ Kinh Dịch', desc: '64 quẻ Kinh Dịch cổ điển', path: '/iching', color: 'gold' },
               { title: 'Gieo Đài Âm Dương', desc: 'Âm Dương dân gia Việt Nam', path: '/divination', color: 'purple' },
             ].map((item, idx) => (
-              <Link key={idx} to={item.path} className="group">
+              <Link key={idx} to={item.path} className="group flex justify-center">
                 <motion.div
                   whileHover={{ y: -8 }}
                   transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                  className="relative p-6 md:p-8 rounded-3xl text-left h-full border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] transition-colors overflow-hidden will-change-transform"
+                  className="relative p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl text-center sm:text-left h-full border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] transition-colors overflow-hidden will-change-transform w-full"
                 >
                   {/* Hover Glow Effect */}
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_top_right,rgba(250,204,21,0.1),transparent_70%)]" />

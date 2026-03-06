@@ -49,7 +49,14 @@ export const DivinationPage: React.FC = () => {
     if (result && !preRenderedPDF) {
       const timer = setTimeout(async () => {
         try {
-          const imgData = await preRenderPDFContent('Luận Giải Gieo Quẻ Âm Dương', result);
+          const resources = coins.map((side, i) => ({
+            type: 'image' as const,
+            content: side === 'head' 
+              ? "https://img.icons8.com/fluency/240/sun.png" 
+              : "https://img.icons8.com/fluency/240/full-moon.png",
+            label: `Đồng xu ${i + 1}: ${side === 'head' ? 'Ngửa' : 'Sấp'}`
+          }));
+          const imgData = await preRenderPDFContent('Luận Giải Gieo Quẻ Âm Dương', result, resources);
           setPreRenderedPDF(imgData);
         } catch (err) {
           console.error("Pre-render failed:", err);
@@ -57,7 +64,7 @@ export const DivinationPage: React.FC = () => {
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [result, preRenderedPDF]);
+  }, [result, coins, preRenderedPDF]);
 
   const handleReset = () => {
     setIsRefreshing(true);
@@ -166,7 +173,7 @@ export const DivinationPage: React.FC = () => {
   const handleDownload = (userData: UserData, format: 'txt' | 'pdf') => {
     if (!result) return;
     if (format === 'pdf') {
-      downloadDivinationPDF(userData, result, preRenderedPDF || undefined);
+      downloadDivinationPDF(userData, result, coins, preRenderedPDF || undefined);
     } else {
       downloadAsFile(result, 'gieo-dai-am-duong.txt', userData);
     }

@@ -52,7 +52,7 @@ export const TarotPage: React.FC = () => {
   }, [interpretation]);
 
   useEffect(() => {
-    if (interpretation && selectedCards.length > 0 && !preRenderedPDF) {
+    if (interpretation && selectedCards.length > 0) {
       const timer = setTimeout(async () => {
         try {
           const resources = selectedCards.map(card => ({
@@ -68,7 +68,7 @@ export const TarotPage: React.FC = () => {
       }, 1000); // Wait for animations to settle
       return () => clearTimeout(timer);
     }
-  }, [interpretation, selectedCards, preRenderedPDF]);
+  }, [interpretation, selectedCards]);
 
   const handleReset = () => {
     setIsRefreshing(true);

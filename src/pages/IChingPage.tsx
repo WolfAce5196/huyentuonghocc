@@ -51,7 +51,7 @@ export const IChingPage: React.FC = () => {
   }, [result]);
 
   useEffect(() => {
-    if (result && hexNumber && !preRenderedPDF) {
+    if (result && hexNumber) {
       const timer = setTimeout(async () => {
         try {
           const hexImage = `https://raw.githubusercontent.com/pete-otaqui/iching/master/images/hexagrams/${hexNumber}.png`;
@@ -69,7 +69,7 @@ export const IChingPage: React.FC = () => {
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [result, hexNumber, generatedImageUrl, preRenderedPDF]);
+  }, [result, hexNumber, generatedImageUrl]);
 
   const handleReset = () => {
     setIsRefreshing(true);

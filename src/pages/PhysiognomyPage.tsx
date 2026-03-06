@@ -56,7 +56,7 @@ export const PhysiognomyPage: React.FC = () => {
   }, [result]);
 
   useEffect(() => {
-    if (result?.analysis && image && !preRenderedPDF) {
+    if (result?.analysis && image) {
       const timer = setTimeout(async () => {
         try {
           const resources = [
@@ -71,7 +71,7 @@ export const PhysiognomyPage: React.FC = () => {
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [result, image, preRenderedPDF]);
+  }, [result, image]);
 
   const handleReset = () => {
     setIsRefreshing(true);

@@ -8,87 +8,133 @@ interface PDFResource {
   label?: string;
 }
 
+const formatMainContent = (mainContent: string) => {
+  return mainContent
+    .split('\n')
+    .map(line => {
+      const trimmedLine = line.trim();
+      if (trimmedLine.startsWith('# ')) {
+        return `<h2 style="color: #facc15; font-size: 28px; margin-top: 40px; margin-bottom: 20px; border-left: 5px solid #facc15; padding-left: 15px; text-transform: uppercase;">${trimmedLine.substring(2)}</h2>`;
+      }
+      if (trimmedLine.startsWith('## ')) {
+        return `<h3 style="color: #facc15; font-size: 22px; margin-top: 30px; margin-bottom: 15px; border-bottom: 1px solid rgba(250, 204, 21, 0.3); padding-bottom: 8px;">${trimmedLine.substring(3)}</h3>`;
+      }
+      if (trimmedLine.startsWith('### ')) {
+        return `<h4 style="color: #facc15; font-size: 19px; margin-top: 25px; margin-bottom: 12px;">${trimmedLine.substring(4)}</h4>`;
+      }
+      if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
+        return `<div style="margin-left: 20px; margin-bottom: 10px; display: flex; align-items: flex-start;">
+                  <span style="color: #facc15; margin-right: 10px;">✦</span>
+                  <span>${trimmedLine.substring(2)}</span>
+                </div>`;
+      }
+      if (trimmedLine.match(/^\d+\./)) {
+        return `<div style="margin-left: 20px; margin-bottom: 10px; display: flex; align-items: flex-start;">
+                  <span style="color: #facc15; margin-right: 10px; font-weight: bold;">${trimmedLine.split('.')[0]}.</span>
+                  <span>${trimmedLine.substring(trimmedLine.indexOf('.') + 1).trim()}</span>
+                </div>`;
+      }
+      if (trimmedLine === '') {
+        return '<div style="height: 15px;"></div>';
+      }
+      
+      // Handle bold
+      let processedLine = trimmedLine.replace(/\*\*(.*?)\*\*/g, '<strong style="color: #facc15;">$1</strong>');
+      // Handle italic
+      processedLine = processedLine.replace(/\*(.*?)\*/g, '<em style="color: #d1d5db;">$1</em>');
+      
+      return `<p style="margin-bottom: 15px; text-indent: 0;">${processedLine}</p>`;
+    })
+    .join('');
+};
+
+const createResourcesHtml = (resources: PDFResource[]) => {
+  if (resources.length === 0) return '';
+  return `
+    <div style="margin-bottom: 60px; text-align: center;">
+      <h3 style="color: #facc15; font-size: 22px; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 35px; border-bottom: 1px solid rgba(250, 204, 21, 0.2); padding-bottom: 15px; display: inline-block;">Tài nguyên luận giải</h3>
+      <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 30px;">
+        ${resources.map(res => {
+          if (res.type === 'image') {
+            return `
+              <div style="text-align: center; max-width: 240px;">
+                <div style="background-color: #1a1a24; padding: 10px; border-radius: 16px; border: 2px solid #facc15; box-shadow: 0 15px 40px rgba(0,0,0,0.6);">
+                  <img src="${res.content}" style="width: 100%; height: auto; border-radius: 8px;" crossorigin="anonymous" />
+                </div>
+                ${res.label ? `<p style="color: #facc15; margin-top: 15px; font-size: 15px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">${res.label}</p>` : ''}
+              </div>
+            `;
+          }
+          return '';
+        }).join('')}
+      </div>
+    </div>
+  `;
+};
+
 const createPDFTemplate = (title: string, userData: UserData, resources: PDFResource[], mainContent: string, preRenderedContent?: string) => {
   const container = document.createElement('div');
-  container.style.width = '800px';
-  container.style.padding = '60px';
-  container.style.backgroundColor = '#0a0502';
-  container.style.color = '#ffffff';
+  container.style.width = '850px';
+  container.style.padding = '70px';
+  container.style.backgroundColor = '#121218';
+  container.style.color = '#e5e7eb';
   container.style.fontFamily = "'Times New Roman', serif";
-  container.style.lineHeight = '1.6';
+  container.style.lineHeight = '1.7';
+  container.style.border = '15px solid #1a1a24';
+  container.style.boxSizing = 'border-box';
 
   // Header
   const header = `
-    <div style="text-align: center; border-bottom: 2px solid #facc15; padding-bottom: 30px; margin-bottom: 40px;">
-      <h1 style="color: #facc15; margin: 0; font-size: 36px; text-transform: uppercase; letter-spacing: 4px;">Huyền Tướng Học</h1>
-      <p style="color: #facc15; margin: 10px 0 0; font-size: 14px; letter-spacing: 6px; opacity: 0.8;">AI MYSTIC PLATFORM</p>
+    <div style="text-align: center; border-bottom: 3px double #facc15; padding-bottom: 35px; margin-bottom: 45px; position: relative;">
+      <div style="position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: 24px; color: #facc15; opacity: 0.5;">✧ ✧ ✧</div>
+      <h1 style="color: #facc15; margin: 0; font-size: 42px; text-transform: uppercase; letter-spacing: 6px; font-weight: 900; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">Huyền Tướng Học</h1>
+      <p style="color: #facc15; margin: 12px 0 0; font-size: 16px; letter-spacing: 8px; opacity: 0.9; font-weight: 300;">NỀN TẢNG HUYỀN HỌC AI TỐI TÂN</p>
     </div>
   `;
 
   // User Info
   const userInfo = `
-    <div style="margin-bottom: 40px; background-color: #1a1a1f; padding: 30px; border-radius: 20px; border: 1px solid rgba(250, 204, 21, 0.2);">
-      <h3 style="color: #facc15; margin-top: 0; font-size: 18px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 20px;">Thông tin người nhận:</h3>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-        <p style="margin: 0; font-size: 15px;"><strong>Họ tên:</strong> ${userData.fullName}</p>
-        <p style="margin: 0; font-size: 15px;"><strong>Số điện thoại:</strong> ${userData.phone}</p>
-        <p style="margin: 0; font-size: 15px;"><strong>Email:</strong> ${userData.email}</p>
-        <p style="margin: 0; font-size: 15px;"><strong>Ngày tải:</strong> ${new Date().toLocaleString('vi-VN')}</p>
+    <div style="margin-bottom: 45px; background: linear-gradient(135deg, #1a1a24 0%, #121218 100%); padding: 35px; border-radius: 24px; border: 1px solid rgba(250, 204, 21, 0.3); box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+      <h3 style="color: #facc15; margin-top: 0; font-size: 20px; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 25px; border-left: 4px solid #facc15; padding-left: 15px;">Thông tin đương chủ</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <p style="margin: 0; font-size: 16px;"><strong style="color: #facc15;">Họ tên:</strong> ${userData.fullName}</p>
+        <p style="margin: 0; font-size: 16px;"><strong style="color: #facc15;">Số điện thoại:</strong> ${userData.phone}</p>
+        <p style="margin: 0; font-size: 16px;"><strong style="color: #facc15;">Email:</strong> ${userData.email}</p>
+        <p style="margin: 0; font-size: 16px;"><strong style="color: #facc15;">Thời khắc:</strong> ${new Date().toLocaleString('vi-VN')}</p>
       </div>
     </div>
   `;
 
   if (preRenderedContent) {
-    // If we have pre-rendered content, we just show the image
-    const contentImg = `<img src="${preRenderedContent}" style="width: 100%; height: auto;" />`;
+    const contentImg = `<img src="${preRenderedContent}" style="width: 100%; height: auto; border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.5);" />`;
     const footer = `
-      <div style="text-align: center; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 30px; margin-top: 60px; color: #9ca3af; font-size: 13px; font-style: italic;">
-        <p style="margin-bottom: 5px;">Bản quyền thuộc về Huyền Tướng Học - Nền tảng huyền học AI hàng đầu.</p>
-        <p>Thông tin chỉ mang tính chất tham khảo và chiêm nghiệm.</p>
+      <div style="text-align: center; border-top: 2px solid rgba(250, 204, 21, 0.2); padding-top: 35px; margin-top: 70px; color: #9ca3af; font-size: 14px; font-style: italic;">
+        <p style="margin-bottom: 8px; color: #facc15; opacity: 0.8;">✧ Lời nhắn từ vũ trụ ✧</p>
+        <p style="margin-bottom: 5px;">Bản quyền thuộc về Huyền Tướng Học. Thông tin chỉ mang tính chất tham khảo và chiêm nghiệm.</p>
+        <p style="font-size: 12px; opacity: 0.6;">© ${new Date().getFullYear()} Huyền Tướng Học AI Platform</p>
       </div>
     `;
     container.innerHTML = header + userInfo + contentImg + footer;
     return container;
   }
 
-  // Resources Section (The "Resources at the top" requirement)
-  let resourcesHtml = '';
-  if (resources.length > 0) {
-    resourcesHtml = `
-      <div style="margin-bottom: 50px; text-align: center;">
-        <h3 style="color: #facc15; font-size: 20px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 30px; border-bottom: 1px solid rgba(250, 204, 21, 0.1); padding-bottom: 10px;">Tài nguyên luận giải</h3>
-        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 20px;">
-          ${resources.map(res => {
-            if (res.type === 'image') {
-              return `
-                <div style="text-align: center;">
-                  <img src="${res.content}" style="max-width: 200px; max-height: 300px; border-radius: 10px; border: 2px solid #facc15; box-shadow: 0 10px 30px rgba(0,0,0,0.5);" />
-                  ${res.label ? `<p style="color: #facc15; margin-top: 10px; font-size: 14px; font-weight: bold;">${res.label}</p>` : ''}
-                </div>
-              `;
-            }
-            return '';
-          }).join('')}
-        </div>
-      </div>
-    `;
-  }
+  const resourcesHtml = createResourcesHtml(resources);
+  const formattedContent = formatMainContent(mainContent);
 
-  // Main Content
   const content = `
-    <div style="margin-bottom: 50px;">
-      <h2 style="color: #facc15; text-align: center; font-size: 28px; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 40px;">${title}</h2>
-      <div style="font-size: 16px; color: #e5e7eb; white-space: pre-wrap; text-align: justify;">
-        ${mainContent}
+    <div style="margin-bottom: 60px;">
+      <h2 style="color: #facc15; text-align: center; font-size: 32px; text-transform: uppercase; letter-spacing: 4px; margin-bottom: 50px; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">${title}</h2>
+      <div style="font-size: 18px; color: #f3f4f6; text-align: justify; padding: 0 20px;">
+        ${formattedContent}
       </div>
     </div>
   `;
 
-  // Footer
   const footer = `
-    <div style="text-align: center; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 30px; margin-top: 60px; color: #9ca3af; font-size: 13px; font-style: italic;">
-      <p style="margin-bottom: 5px;">Bản quyền thuộc về Huyền Tướng Học - Nền tảng huyền học AI hàng đầu.</p>
-      <p>Thông tin chỉ mang tính chất tham khảo và chiêm nghiệm.</p>
+    <div style="text-align: center; border-top: 2px solid rgba(250, 204, 21, 0.2); padding-top: 35px; margin-top: 70px; color: #9ca3af; font-size: 14px; font-style: italic;">
+      <p style="margin-bottom: 8px; color: #facc15; opacity: 0.8;">✧ Lời nhắn từ vũ trụ ✧</p>
+      <p style="margin-bottom: 5px;">Bản quyền thuộc về Huyền Tướng Học. Thông tin chỉ mang tính chất tham khảo và chiêm nghiệm.</p>
+      <p style="font-size: 12px; opacity: 0.6;">© ${new Date().getFullYear()} Huyền Tướng Học AI Platform</p>
     </div>
   `;
 
@@ -102,28 +148,35 @@ export const downloadPDF = async (
   userData: UserData,
   mainContent: string,
   resources: PDFResource[] = [],
-  preRenderedContent?: string // Optional pre-rendered image data
+  preRenderedContent?: string
 ) => {
-  // If we have pre-rendered content, we can skip html2canvas for the main part
-  // However, we still need to combine it with the header and footer
-  // To keep it simple and fast, we'll still use the template but if preRenderedContent is provided,
-  // we can use it directly in the template to avoid re-rendering complex parts.
-  
   const tempContainer = createPDFTemplate(title, userData, resources, mainContent, preRenderedContent);
   tempContainer.style.position = 'absolute';
   tempContainer.style.left = '-9999px';
   tempContainer.style.top = '0';
   document.body.appendChild(tempContainer);
 
+  // Wait for images to load
+  const images = tempContainer.getElementsByTagName('img');
+  const imagePromises = Array.from(images).map(img => {
+    if (img.complete) return Promise.resolve();
+    return new Promise(resolve => {
+      img.onload = resolve;
+      img.onerror = resolve;
+    });
+  });
+  await Promise.all(imagePromises);
+
   try {
     const canvas = await html2canvas(tempContainer, {
-      scale: 1.5, // Slightly lower scale for speed, still looks good
+      scale: 2, // Higher scale for better quality
       useCORS: true,
-      backgroundColor: '#0a0502',
+      allowTaint: true,
+      backgroundColor: '#121218',
       logging: false,
     });
 
-    const imgData = canvas.toDataURL('image/jpeg', 0.8); // JPEG is faster and smaller than PNG
+    const imgData = canvas.toDataURL('image/jpeg', 0.9);
     const pdf = new jsPDF('p', 'mm', 'a4');
     const imgProps = pdf.getImageProperties(imgData);
     const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -182,8 +235,20 @@ export const downloadIChingPDF = (userData: UserData, result: string, hexImage: 
   return downloadPDF('Luận Giải Gieo Quẻ Kinh Dịch', 'kinh-dich.pdf', userData, result, resources, preRenderedContent);
 };
 
-export const downloadDivinationPDF = (userData: UserData, result: string, preRenderedContent?: string) => {
-  return downloadPDF('Luận Giải Gieo Quẻ Âm Dương', 'gieo-que.pdf', userData, result, [], preRenderedContent);
+export const downloadDivinationPDF = (userData: UserData, result: string, coins?: string[], preRenderedContent?: string) => {
+  const resources: PDFResource[] = [];
+  if (coins && coins.length > 0) {
+    coins.forEach((side, i) => {
+      resources.push({
+        type: 'image',
+        content: side === 'head' 
+          ? "https://img.icons8.com/fluency/240/sun.png" 
+          : "https://img.icons8.com/fluency/240/full-moon.png",
+        label: `Đồng xu ${i + 1}: ${side === 'head' ? 'Ngửa' : 'Sấp'}`
+      });
+    });
+  }
+  return downloadPDF('Luận Giải Gieo Quẻ Âm Dương', 'gieo-que.pdf', userData, result, resources, preRenderedContent);
 };
 
 export const preRenderPDFContent = async (
@@ -191,42 +256,24 @@ export const preRenderPDFContent = async (
   mainContent: string,
   resources: PDFResource[] = []
 ): Promise<string> => {
-  // Create a template without user info for pre-rendering
   const container = document.createElement('div');
-  container.style.width = '800px';
-  container.style.padding = '60px';
-  container.style.backgroundColor = '#0a0502';
-  container.style.color = '#ffffff';
+  container.style.width = '850px';
+  container.style.padding = '70px';
+  container.style.backgroundColor = '#121218';
+  container.style.color = '#e5e7eb';
   container.style.fontFamily = "'Times New Roman', serif";
-  container.style.lineHeight = '1.6';
+  container.style.lineHeight = '1.7';
+  container.style.border = '15px solid #1a1a24';
+  container.style.boxSizing = 'border-box';
 
-  let resourcesHtml = '';
-  if (resources.length > 0) {
-    resourcesHtml = `
-      <div style="margin-bottom: 50px; text-align: center;">
-        <h3 style="color: #facc15; font-size: 20px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 30px; border-bottom: 1px solid rgba(250, 204, 21, 0.1); padding-bottom: 10px;">Tài nguyên luận giải</h3>
-        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 20px;">
-          ${resources.map(res => {
-            if (res.type === 'image') {
-              return `
-                <div style="text-align: center;">
-                  <img src="${res.content}" style="max-width: 200px; max-height: 300px; border-radius: 10px; border: 2px solid #facc15; box-shadow: 0 10px 30px rgba(0,0,0,0.5);" />
-                  ${res.label ? `<p style="color: #facc15; margin-top: 10px; font-size: 14px; font-weight: bold;">${res.label}</p>` : ''}
-                </div>
-              `;
-            }
-            return '';
-          }).join('')}
-        </div>
-      </div>
-    `;
-  }
+  const resourcesHtml = createResourcesHtml(resources);
+  const formattedContent = formatMainContent(mainContent);
 
   const content = `
-    <div style="margin-bottom: 50px;">
-      <h2 style="color: #facc15; text-align: center; font-size: 28px; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 40px;">${title}</h2>
-      <div style="font-size: 16px; color: #e5e7eb; white-space: pre-wrap; text-align: justify;">
-        ${mainContent}
+    <div style="margin-bottom: 60px;">
+      <h2 style="color: #facc15; text-align: center; font-size: 32px; text-transform: uppercase; letter-spacing: 4px; margin-bottom: 50px; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">${title}</h2>
+      <div style="font-size: 18px; color: #f3f4f6; text-align: justify; padding: 0 20px;">
+        ${formattedContent}
       </div>
     </div>
   `;
@@ -237,14 +284,26 @@ export const preRenderPDFContent = async (
   container.style.top = '0';
   document.body.appendChild(container);
 
+  // Wait for images to load
+  const images = container.getElementsByTagName('img');
+  const imagePromises = Array.from(images).map(img => {
+    if (img.complete) return Promise.resolve();
+    return new Promise(resolve => {
+      img.onload = resolve;
+      img.onerror = resolve;
+    });
+  });
+  await Promise.all(imagePromises);
+
   try {
     const canvas = await html2canvas(container, {
-      scale: 1.5,
+      scale: 2,
       useCORS: true,
-      backgroundColor: '#0a0502',
+      allowTaint: true,
+      backgroundColor: '#121218',
       logging: false,
     });
-    return canvas.toDataURL('image/jpeg', 0.8);
+    return canvas.toDataURL('image/jpeg', 0.9);
   } finally {
     document.body.removeChild(container);
   }
