@@ -57,8 +57,8 @@ export const TarotPage: React.FC = () => {
         try {
           const resources = selectedCards.map(card => ({
             type: 'image' as const,
-            content: card.image,
-            label: card.name
+            content: card.card.image_url,
+            label: card.card.name_en
           }));
           const imgData = await preRenderPDFContent('Luận Giải Bài Tarot', interpretation, resources);
           setPreRenderedPDF(imgData);
@@ -195,8 +195,8 @@ export const TarotPage: React.FC = () => {
     if (!interpretation) return;
     if (format === 'pdf') {
       const cards = selectedCards.map(c => ({
-        name: c.card.name_vi,
-        image: c.card.image
+        name: c.card.name_en,
+        image: c.card.image_url
       }));
       downloadTarotPDF(userData, interpretation, cards, preRenderedPDF || undefined);
     } else {

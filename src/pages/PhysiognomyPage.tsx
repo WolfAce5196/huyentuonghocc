@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, Camera, Sparkles, Loader2, Save, Share2, User, RefreshCw, History as HistoryIcon, Download } from 'lucide-react';
 import { ai, MODELS, SYSTEM_PROMPTS, safeGenerateContent, getCurrentContext } from '../lib/gemini';
-import { cn } from '../lib/utils';
+import { cn, extractJSON } from '../lib/utils';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { HistorySidebar } from '../components/HistorySidebar';
@@ -12,13 +12,28 @@ import { DownloadModal, UserData } from '../components/DownloadModal';
 import { downloadAsFile } from '../lib/download';
 import { downloadPhysiognomyPDF, preRenderPDFContent } from '../lib/pdf';
 
+interface PhysiognomyAnalysis {
+  isValid: boolean;
+  errorMessage?: string;
+  analysis?: {
+    overview: string;
+    features: Array<{ part: string; description: string; interpretation: string }>;
+    threeRegions: { upper: string; middle: string; lower: string };
+    fiveMountains: { forehead: string; nose: string; chin: string; leftCheek: string; rightCheek: string };
+    twelvePalaces: string;
+    destiny: string;
+    personality: string;
+    advice: string;
+  };
+}
+
 export const PhysiognomyPage: React.FC = () => {
   const { states, updateState, resetState, startLoading, finishLoading } = useReading();
   const pageState = states.physiognomy || {};
 
   const [image, setImage] = useState<string | null>(pageState.image || null);
   const [loading, setLoading] = useState(pageState.loading || false);
-  const [result, setResult] = useState<string | null>(pageState.result || null);
+  const [result, setResult] = useState<PhysiognomyAnalysis | null>(pageState.result || null);
   const [error, setError] = useState<string | null>(pageState.error || null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
@@ -41,13 +56,14 @@ export const PhysiognomyPage: React.FC = () => {
   }, [result]);
 
   useEffect(() => {
-    if (result && image && !preRenderedPDF) {
+    if (result?.analysis && image && !preRenderedPDF) {
       const timer = setTimeout(async () => {
         try {
           const resources = [
             { type: 'image' as const, content: image, label: 'Hình ảnh nhân tướng' }
           ];
-          const imgData = await preRenderPDFContent('Luận Giải Nhân Tướng Học', result, resources);
+          const markdown = getAnalysisMarkdown(result.analysis);
+          const imgData = await preRenderPDFContent('Luận Giải Nhân Tướng Học', markdown, resources);
           setPreRenderedPDF(imgData);
         } catch (err) {
           console.error("Pre-render failed:", err);
@@ -121,7 +137,12 @@ export const PhysiognomyPage: React.FC = () => {
         contents: [{ parts }],
       });
 
-      const resultText = response.text || "Không thể phân tích khuôn mặt. Vui lòng thử lại.";
+      const resultData = extractJSON(response.text || "{}") as PhysiognomyAnalysis;
+      
+      if (!resultData.isValid) {
+        finishLoading('physiognomy', {}, resultData.errorMessage || "Ảnh không đạt tiêu chuẩn. Vui lòng chụp rõ mặt chính diện.");
+        return;
+      }
       
       // Save to history
       saveHistory({
@@ -129,11 +150,11 @@ export const PhysiognomyPage: React.FC = () => {
         title: `Xem Nhân Tướng (${new Date().toLocaleDateString('vi-VN')})`,
         result: {
           image,
-          interpretation: resultText
+          interpretation: resultData
         }
       });
 
-      finishLoading('physiognomy', { result: resultText });
+      finishLoading('physiognomy', { result: resultData });
     } catch (err: any) {
       console.error(err);
       let errorMsg = "Đã xảy ra lỗi trong quá trình phân tích. Vui lòng kiểm tra lại hình ảnh.";
@@ -149,12 +170,46 @@ export const PhysiognomyPage: React.FC = () => {
     setResult(item.result.interpretation);
   };
 
+  const getAnalysisMarkdown = (analysis: PhysiognomyAnalysis['analysis']) => {
+    if (!analysis) return '';
+    return `
+# Luận Giải Nhân Tướng Học
+
+${analysis.overview}
+
+## Ngũ Quan & Bộ Phận
+${analysis.features.map(f => `### ${f.part}\n**Mô tả:** ${f.description}\n**Luận giải:** ${f.interpretation}`).join('\n\n')}
+
+## Tam Đình
+- **Thượng đình:** ${analysis.threeRegions.upper}
+- **Trung đình:** ${analysis.threeRegions.middle}
+- **Hạ đình:** ${analysis.threeRegions.lower}
+
+## Ngũ Nhạc
+- **Nam Nhạc (Trán):** ${analysis.fiveMountains.forehead}
+- **Trung Nhạc (Mũi):** ${analysis.fiveMountains.nose}
+- **Bắc Nhạc (Cằm):** ${analysis.fiveMountains.chin}
+- **Đông Nhạc (Gò má trái):** ${analysis.fiveMountains.leftCheek}
+- **Tây Nhạc (Gò má phải):** ${analysis.fiveMountains.rightCheek}
+
+${analysis.twelvePalaces}
+
+${analysis.destiny}
+
+${analysis.personality}
+
+${analysis.advice}
+    `;
+  };
+
   const handleDownload = (userData: UserData, format: 'txt' | 'pdf') => {
     if (!result || !image) return;
     if (format === 'pdf') {
-      downloadPhysiognomyPDF(userData, result, image, preRenderedPDF || undefined);
+      const markdown = getAnalysisMarkdown(result.analysis);
+      downloadPhysiognomyPDF(userData, markdown, image, preRenderedPDF || undefined);
     } else {
-      downloadAsFile(result, 'nhan-tuong-hoc.txt', userData);
+      const content = JSON.stringify(result, null, 2);
+      downloadAsFile(content, 'nhan-tuong-hoc.json', userData);
     }
   };
 
@@ -210,59 +265,94 @@ export const PhysiognomyPage: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
         {/* Upload Section */}
-        <motion.div 
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="glass-morphism p-5 md:p-8 rounded-3xl border-mystic-purple/30"
-        >
-          <div 
-            onClick={() => fileInputRef.current?.click()}
-            className={cn(
-              "relative aspect-square rounded-2xl border-2 border-dashed border-mystic-purple/50 flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-all hover:border-mystic-gold group",
-              image ? "border-none" : "bg-mystic-purple/5"
-            )}
+        <div className="space-y-8">
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="glass-morphism p-5 md:p-8 rounded-3xl border-mystic-purple/30"
           >
-            {image ? (
-              <>
-                <img src={image} alt="Preview" className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <Camera className="w-10 h-10 md:w-12 md:h-12 text-white" />
+            <div 
+              onClick={() => fileInputRef.current?.click()}
+              className={cn(
+                "relative aspect-square rounded-2xl border-2 border-dashed border-mystic-purple/50 flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-all hover:border-mystic-gold group",
+                image ? "border-none" : "bg-mystic-purple/5"
+              )}
+            >
+              {image ? (
+                <>
+                  <img src={image} alt="Preview" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Camera className="w-10 h-10 md:w-12 md:h-12 text-white" />
+                  </div>
+                </>
+              ) : (
+                <div className="text-center p-4 md:p-6">
+                  <Upload className="w-12 h-12 md:w-16 md:h-16 text-mystic-purple mb-4 mx-auto group-hover:text-mystic-gold transition-colors" />
+                  <p className="text-base md:text-lg font-medium mb-2">Tải ảnh khuôn mặt</p>
+                  <p className="text-gray-500 text-xs md:text-sm">Hỗ trợ JPG, PNG. Chụp rõ nét, đủ ánh sáng.</p>
                 </div>
-              </>
-            ) : (
-              <div className="text-center p-4 md:p-6">
-                <Upload className="w-12 h-12 md:w-16 md:h-16 text-mystic-purple mb-4 mx-auto group-hover:text-mystic-gold transition-colors" />
-                <p className="text-base md:text-lg font-medium mb-2">Tải ảnh khuôn mặt</p>
-                <p className="text-gray-500 text-xs md:text-sm">Hỗ trợ JPG, PNG. Chụp rõ nét, đủ ánh sáng.</p>
-              </div>
-            )}
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              onChange={handleImageUpload} 
-              className="hidden" 
-              accept="image/*" 
-            />
-          </div>
+              )}
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleImageUpload} 
+                className="hidden" 
+                accept="image/*" 
+              />
+            </div>
 
-          <button
-            disabled={!image || loading}
-            onClick={analyzeFace}
-            className="w-full mt-6 md:mt-8 py-3.5 md:py-4 px-8 bg-mystic-purple hover:bg-mystic-purple/80 disabled:bg-gray-800 disabled:cursor-not-allowed rounded-xl font-bold tracking-widest uppercase flex items-center justify-center gap-3 transition-all mystic-glow text-sm md:text-base"
+            <button
+              disabled={!image || loading}
+              onClick={analyzeFace}
+              className="w-full mt-6 md:mt-8 py-3.5 md:py-4 px-8 bg-mystic-purple hover:bg-mystic-purple/80 disabled:bg-gray-800 disabled:cursor-not-allowed rounded-xl font-bold tracking-widest uppercase flex items-center justify-center gap-3 transition-all mystic-glow text-sm md:text-base"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Đang giải mã vận mệnh...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-5 h-5" />
+                  Bắt đầu phân tích
+                </>
+              )}
+            </button>
+          </motion.div>
+
+          {/* Guidelines Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="glass-morphism p-6 rounded-3xl border-mystic-gold/20"
           >
-            {loading ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Đang giải mã vận mệnh...
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-5 h-5" />
-                Bắt đầu phân tích
-              </>
-            )}
-          </button>
-        </motion.div>
+            <h3 className="text-mystic-gold font-serif font-bold mb-4 flex items-center gap-2">
+              <Sparkles className="w-5 h-5" /> Tiêu chuẩn ảnh nhân tướng
+            </h3>
+            <ul className="space-y-3 text-sm text-gray-400">
+              <li className="flex items-start gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-mystic-gold mt-1.5 shrink-0" />
+                <span><strong>Ảnh chính diện:</strong> Khuôn mặt nhìn thẳng vào ống kính, không nghiêng trái/phải hay cúi/ngửa.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-mystic-gold mt-1.5 shrink-0" />
+                <span><strong>Rõ nét & Đủ sáng:</strong> Tránh ảnh mờ, nhiễu hoặc bị bóng đổ che khuất các ngũ quan.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-mystic-gold mt-1.5 shrink-0" />
+                <span><strong>Không che khuất:</strong> Không đeo kính râm, khẩu trang, hoặc để tóc che quá nhiều phần trán và tai.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-mystic-gold mt-1.5 shrink-0" />
+                <span><strong>Tự nhiên:</strong> Hạn chế sử dụng các bộ lọc (filter) làm biến dạng đường nét thực tế.</span>
+              </li>
+            </ul>
+            <p className="mt-4 text-[10px] text-mystic-gold/60 italic uppercase tracking-wider">
+              * Lưu ý: AI sẽ bỏ qua bối cảnh và chỉ tập trung phân tích các đặc điểm nhân tướng học chuyên sâu.
+            </p>
+          </motion.div>
+        </div>
 
         {/* Result Section */}
         <div className="min-h-[500px]">
@@ -280,8 +370,8 @@ export const PhysiognomyPage: React.FC = () => {
                   <div className="absolute inset-0 border-4 border-t-mystic-gold rounded-full animate-spin" />
                   <Sparkles className="absolute inset-0 m-auto w-12 h-12 text-mystic-gold animate-pulse" />
                 </div>
-                <h3 className="text-2xl font-serif mb-2">Đang kết nối với kiến thức cổ xưa</h3>
-                <p className="text-gray-500">AI đang phân tích từng đường nét trên khuôn mặt bạn...</p>
+                <h3 className="text-2xl font-serif mb-2">Đang quét đặc điểm nhân tướng</h3>
+                <p className="text-gray-500">AI đang tập trung phân tích ngũ quan và thần thái của bạn...</p>
               </motion.div>
             ) : error ? (
               <motion.div
@@ -293,25 +383,25 @@ export const PhysiognomyPage: React.FC = () => {
                 <div className="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center mb-6">
                   <RefreshCw className="w-10 h-10 text-red-500" />
                 </div>
-                <h3 className="text-xl font-serif text-red-500 mb-2">Thông báo</h3>
+                <h3 className="text-xl font-serif text-red-500 mb-2">Ảnh không đạt tiêu chuẩn</h3>
                 <p className="text-gray-400 max-w-xs">{error}</p>
                 <button 
-                  onClick={analyzeFace}
+                  onClick={() => { setImage(null); setError(null); }}
                   className="mt-6 text-mystic-gold hover:underline font-bold"
                 >
-                  Thử lại ngay
+                  Tải ảnh khác
                 </button>
               </motion.div>
-            ) : result ? (
+            ) : result?.analysis ? (
               <motion.div
                 id="physiognomy-result"
                 key="result"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="glass-morphism p-5 md:p-8 rounded-3xl border-mystic-gold/30 h-full overflow-y-auto max-h-[600px] md:max-h-[800px]"
+                className="glass-morphism p-5 md:p-8 rounded-3xl border-mystic-gold/30 h-full overflow-y-auto max-h-[800px]"
               >
                 <div className="flex items-center justify-between mb-6 md:mb-8 border-b border-mystic-gold/20 pb-4">
-                  <h2 className="text-xl md:text-2xl font-serif font-bold text-mystic-gold">Kết Quả Luận Giải</h2>
+                  <h2 className="text-xl md:text-2xl font-serif font-bold text-mystic-gold">Luận Giải Chuyên Sâu</h2>
                   <div className="flex gap-2">
                     <button className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
                       <Save className="w-4 h-4 md:w-5 md:h-5" />
@@ -322,8 +412,51 @@ export const PhysiognomyPage: React.FC = () => {
                   </div>
                 </div>
                 
-                <div className="markdown-body">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{result}</ReactMarkdown>
+                <div className="space-y-8">
+                  <section>
+                    <div className="markdown-body">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.analysis.overview}</ReactMarkdown>
+                    </div>
+                  </section>
+
+                  <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                      <h4 className="text-mystic-gold font-bold text-sm uppercase tracking-widest mb-3">Tam Đình</h4>
+                      <ul className="space-y-2 text-sm">
+                        <li><span className="text-gray-500">Thượng:</span> {result.analysis.threeRegions.upper}</li>
+                        <li><span className="text-gray-500">Trung:</span> {result.analysis.threeRegions.middle}</li>
+                        <li><span className="text-gray-500">Hạ:</span> {result.analysis.threeRegions.lower}</li>
+                      </ul>
+                    </div>
+                    <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                      <h4 className="text-mystic-gold font-bold text-sm uppercase tracking-widest mb-3">Ngũ Nhạc</h4>
+                      <ul className="space-y-2 text-sm">
+                        <li><span className="text-gray-500">Nam (Trán):</span> {result.analysis.fiveMountains.forehead}</li>
+                        <li><span className="text-gray-500">Trung (Mũi):</span> {result.analysis.fiveMountains.nose}</li>
+                        <li><span className="text-gray-500">Bắc (Cằm):</span> {result.analysis.fiveMountains.chin}</li>
+                      </ul>
+                    </div>
+                  </section>
+
+                  <section>
+                    <h4 className="text-mystic-gold font-bold text-sm uppercase tracking-widest mb-4 border-l-2 border-mystic-gold pl-3">Chi tiết Ngũ Quan</h4>
+                    <div className="space-y-4">
+                      {result.analysis.features.map((f, i) => (
+                        <div key={i} className="p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+                          <h5 className="font-bold text-mystic-gold mb-1">{f.part}</h5>
+                          <p className="text-xs text-gray-400 mb-2 italic">{f.description}</p>
+                          <p className="text-sm text-gray-300">{f.interpretation}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+
+                  <section className="markdown-body">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.analysis.twelvePalaces}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.analysis.destiny}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.analysis.personality}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.analysis.advice}</ReactMarkdown>
+                  </section>
                 </div>
               </motion.div>
             ) : (
