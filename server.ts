@@ -17,25 +17,50 @@ app.use(express.json());
 // Google Sheets logging
 async function logToGoogleSheet(data: any) {
   try {
+    let privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+    
+    // Remove quotes if present (common in .env files)
+    if (privateKey?.startsWith('"') && privateKey?.endsWith('"')) {
+      privateKey = privateKey.substring(1, privateKey.length - 1);
+    }
+    
+    const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL?.trim();
+    
+    if (!clientEmail || !privateKey) {
+      console.error("Missing Google Service Account credentials. EMAIL:", !!clientEmail, "KEY:", !!privateKey);
+      return false;
+    }
+
+    console.log("Private Key starts with:", privateKey.substring(0, 30), "...");
+    console.log("Private Key length:", privateKey.length);
+    console.log("Service Account Email:", clientEmail);
+
     const auth = new google.auth.GoogleAuth({
       credentials: {
-        client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-        private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+        client_email: clientEmail,
+        private_key: privateKey,
       },
       scopes: ["https://www.googleapis.com/auth/spreadsheets"],
     });
 
     const sheets = google.sheets({ version: "v4", auth });
-    const spreadsheetId = process.env.GOOGLE_SHEET_ID || "1znCqg3MUjJGNwskz-1zkP71Ovnju9-AgWijvO_jHPcA";
+    const spreadsheetId = (process.env.GOOGLE_SHEET_ID || "1znCqg3MUjJGNwskz-1zkP71Ovnju9-AgWijvO_jHPcA").trim();
 
+    if (!privateKey.includes("-----BEGIN PRIVATE KEY-----")) {
+      console.warn("GOOGLE_PRIVATE_KEY might be missing the standard header/footer.");
+    }
+
+    console.log("Attempting to connect to Google Sheets API...");
     // Try to get the first sheet name dynamically to be safe
     const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
+    console.log("Successfully connected to Spreadsheet:", spreadsheet.data.properties?.title);
+    
     const sheetName = spreadsheet.data.sheets?.[0]?.properties?.title || "Sheet1";
     const range = `${sheetName}!A:I`;
 
-    console.log(`Logging to sheet: ${sheetName} in spreadsheet: ${spreadsheetId}`);
+    console.log(`Appending data to sheet: ${sheetName} (Range: ${range})`);
 
-    await sheets.spreadsheets.values.append({
+    const response = await sheets.spreadsheets.values.append({
       spreadsheetId,
       range, 
       valueInputOption: "USER_ENTERED",
@@ -55,6 +80,7 @@ async function logToGoogleSheet(data: any) {
         ],
       },
     });
+    console.log("Successfully appended data to Google Sheets:", response.statusText);
     return true;
   } catch (error) {
     console.error("Error logging to Google Sheets:", error);

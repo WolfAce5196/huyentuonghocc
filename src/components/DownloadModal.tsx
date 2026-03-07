@@ -89,7 +89,7 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose, o
       }
 
       // Log to Google Sheets via backend
-      await fetch('/api/log-submission', {
+      const logResponse = await fetch('/api/log-submission', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -98,6 +98,14 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose, o
           summary: summary
         })
       });
+
+      if (!logResponse.ok) {
+        const errorData = await logResponse.json();
+        console.error("Failed to log to Google Sheets:", errorData.error);
+        // We don't block the download, but we log the error
+      } else {
+        console.log("Successfully logged to Google Sheets");
+      }
     } catch (error) {
       console.error("Failed to log submission:", error);
     } finally {
