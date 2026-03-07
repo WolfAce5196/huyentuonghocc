@@ -77,7 +77,7 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose, o
         try {
           const ai = new GoogleGenAI({ apiKey });
           const response = await ai.models.generateContent({
-            model: "gemini-2.0-flash",
+            model: "gemini-3-flash-preview",
             contents: [{ role: "user", parts: [{ text: `Hãy tóm tắt bản luận giải sau đây một cách ngắn gọn, xúc tích, logic và đầy đủ nhất (khoảng 2-3 câu): \n\n${interpretation}` }] }]
           });
           if (response.text) {

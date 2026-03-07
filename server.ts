@@ -31,8 +31,7 @@ async function logToGoogleSheet(data: any) {
       privateKey = privateKey.substring(1, privateKey.length - 1);
     }
 
-    // Trim whitespace from each line and the whole string
-    privateKey = privateKey.split('\n').map(line => line.trim()).join('\n').trim();
+    privateKey = privateKey.trim();
     
     const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL?.trim();
     
@@ -69,12 +68,19 @@ async function logToGoogleSheet(data: any) {
     }
 
     console.log("Attempting to connect to Google Sheets API...");
-    // Try to get the first sheet name dynamically to be safe
     const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
     console.log("Successfully connected to Spreadsheet:", spreadsheet.data.properties?.title);
     
     const sheetName = "Data";
-    // Wrap sheet name in single quotes to handle spaces or special characters like "Trang tính1"
+    const sheetExists = spreadsheet.data.sheets?.some(s => s.properties?.title === sheetName);
+    
+    if (!sheetExists) {
+      console.error(`Sheet named "${sheetName}" not found in spreadsheet. Available sheets:`, 
+        spreadsheet.data.sheets?.map(s => s.properties?.title).join(", "));
+      return false;
+    }
+
+    // Wrap sheet name in single quotes to handle spaces or special characters
     const range = `'${sheetName}'!A:I`;
 
     console.log(`Appending data to sheet: ${sheetName} (Range: ${range})`);
