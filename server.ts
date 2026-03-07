@@ -17,12 +17,22 @@ app.use(express.json());
 // Google Sheets logging
 async function logToGoogleSheet(data: any) {
   try {
-    let privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+    let privateKey = process.env.GOOGLE_PRIVATE_KEY;
+    if (!privateKey) {
+      console.error("GOOGLE_PRIVATE_KEY is missing from environment variables.");
+      return false;
+    }
+
+    // Handle escaped newlines
+    privateKey = privateKey.replace(/\\n/g, "\n");
     
-    // Remove quotes if present (common in .env files)
-    if (privateKey?.startsWith('"') && privateKey?.endsWith('"')) {
+    // Remove quotes if present
+    if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
       privateKey = privateKey.substring(1, privateKey.length - 1);
     }
+
+    // Trim whitespace from each line and the whole string
+    privateKey = privateKey.split('\n').map(line => line.trim()).join('\n').trim();
     
     const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL?.trim();
     
@@ -44,7 +54,15 @@ async function logToGoogleSheet(data: any) {
     });
 
     const sheets = google.sheets({ version: "v4", auth });
-    const spreadsheetId = (process.env.GOOGLE_SHEET_ID || "1znCqg3MUjJGNwskz-1zkP71Ovnju9-AgWijvO_jHPcA").trim();
+    let spreadsheetId = (process.env.GOOGLE_SHEET_ID || "1znCqg3MUjJGNwskz-1zkP71Ovnju9-AgWijvO_jHPcA").trim();
+    
+    // If user pasted the full URL, extract the ID
+    if (spreadsheetId.includes("docs.google.com/spreadsheets/d/")) {
+      const matches = spreadsheetId.match(/\/d\/([a-zA-Z0-9-_]+)/);
+      if (matches && matches[1]) {
+        spreadsheetId = matches[1];
+      }
+    }
 
     if (!privateKey.includes("-----BEGIN PRIVATE KEY-----")) {
       console.warn("GOOGLE_PRIVATE_KEY might be missing the standard header/footer.");
@@ -55,8 +73,9 @@ async function logToGoogleSheet(data: any) {
     const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
     console.log("Successfully connected to Spreadsheet:", spreadsheet.data.properties?.title);
     
-    const sheetName = spreadsheet.data.sheets?.[0]?.properties?.title || "Sheet1";
-    const range = `${sheetName}!A:I`;
+    const sheetName = "Data";
+    // Wrap sheet name in single quotes to handle spaces or special characters like "Trang tính1"
+    const range = `'${sheetName}'!A:I`;
 
     console.log(`Appending data to sheet: ${sheetName} (Range: ${range})`);
 
@@ -82,8 +101,14 @@ async function logToGoogleSheet(data: any) {
     });
     console.log("Successfully appended data to Google Sheets:", response.statusText);
     return true;
-  } catch (error) {
-    console.error("Error logging to Google Sheets:", error);
+  } catch (error: any) {
+    console.error("Error logging to Google Sheets:");
+    if (error.response) {
+      console.error("Status:", error.response.status);
+      console.error("Data:", JSON.stringify(error.response.data, null, 2));
+    } else {
+      console.error("Message:", error.message);
+    }
     return false;
   }
 }
