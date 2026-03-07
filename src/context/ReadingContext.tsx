@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 
 interface ReadingPageData {
   loading?: boolean;
@@ -15,6 +15,8 @@ interface ReadingState {
   numerology: ReadingPageData | null;
 }
 
+const STORAGE_KEY = 'mystic_reading_states';
+
 interface ReadingContextType {
   states: ReadingState;
   updateState: (page: keyof ReadingState, data: Partial<ReadingPageData>) => void;
@@ -26,13 +28,34 @@ interface ReadingContextType {
 const ReadingContext = createContext<ReadingContextType | undefined>(undefined);
 
 export const ReadingProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [states, setStates] = useState<ReadingState>({
-    physiognomy: null,
-    tarot: null,
-    iching: null,
-    divination: null,
-    numerology: null,
+  const [states, setStates] = useState<ReadingState>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved) as ReadingState;
+        // Reset any page that was loading when refreshed
+        (Object.keys(parsed) as Array<keyof ReadingState>).forEach(key => {
+          if (parsed[key]?.loading) {
+            parsed[key] = null;
+          }
+        });
+        return parsed;
+      } catch (e) {
+        console.error("Failed to parse saved states:", e);
+      }
+    }
+    return {
+      physiognomy: null,
+      tarot: null,
+      iching: null,
+      divination: null,
+      numerology: null,
+    };
   });
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(states));
+  }, [states]);
 
   const updateState = (page: keyof ReadingState, data: Partial<ReadingPageData>) => {
     setStates((prev) => {

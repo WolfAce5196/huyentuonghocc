@@ -40,6 +40,7 @@ export const PhysiognomyPage: React.FC = () => {
   const [preRenderedPDF, setPreRenderedPDF] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   // Sync with context
   useEffect(() => {
@@ -51,7 +52,7 @@ export const PhysiognomyPage: React.FC = () => {
 
   useEffect(() => {
     if (result) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      contentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }, [result]);
 
@@ -214,7 +215,7 @@ ${analysis.advice}
   };
 
   return (
-    <div className="pt-32 pb-20 px-4 max-w-6xl mx-auto">
+    <div className="pt-32 pb-20 px-4 max-w-6xl mx-auto" ref={contentRef}>
       <div className="text-center mb-8 md:mb-12">
         <motion.h1 
           initial={{ opacity: 0, y: -20 }}

@@ -161,6 +161,10 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     app.use(express.static("dist"));
+    // Catch-all route for SPA in production
+    app.get("*", (req, res) => {
+      res.sendFile("dist/index.html", { root: "." });
+    });
   }
 
   app.listen(PORT, "0.0.0.0", () => {

@@ -39,6 +39,7 @@ export const NumerologyPage: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'core' | 'cycle' | 'pyramids'>(pageState.activeTab || 'overview');
   const [isMobile, setIsMobile] = useState(false);
+  const contentRef = React.useRef<HTMLDivElement>(null);
 
   // Sync with context
   useEffect(() => {
@@ -297,7 +298,7 @@ ${result.advice.map(a => `- ${a}`).join('\n')}
 
   useEffect(() => {
     if (result) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      contentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }, [activeTab, result]);
 
@@ -306,7 +307,7 @@ ${result.advice.map(a => `- ${a}`).join('\n')}
   }, [result]);
 
   return (
-    <div className="pt-32 pb-20 px-4 max-w-7xl mx-auto">
+    <div className="pt-32 pb-20 px-4 max-w-7xl mx-auto" ref={contentRef}>
       <div className="text-center mb-12">
         <motion.h1 
           initial={{ opacity: 0, y: -20 }}

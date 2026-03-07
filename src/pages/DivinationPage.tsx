@@ -27,6 +27,7 @@ export const DivinationPage: React.FC = () => {
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
   const [preRenderedPDF, setPreRenderedPDF] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const contentRef = React.useRef<HTMLDivElement>(null);
 
   // Sync with context
   useEffect(() => {
@@ -41,7 +42,7 @@ export const DivinationPage: React.FC = () => {
 
   useEffect(() => {
     if (result) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      contentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }, [result]);
 
@@ -180,7 +181,7 @@ export const DivinationPage: React.FC = () => {
   };
 
   return (
-    <div className="pt-32 pb-20 px-4 max-w-4xl mx-auto">
+    <div className="pt-32 pb-20 px-4 max-w-4xl mx-auto" ref={contentRef}>
       <div className="text-center mb-8 md:mb-12">
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif font-bold mb-4">Gieo Đài Âm Dương</h1>
         <p className="text-mystic-gold tracking-[0.15em] md:tracking-[0.2em] uppercase text-[10px] md:text-sm px-4 mb-6">

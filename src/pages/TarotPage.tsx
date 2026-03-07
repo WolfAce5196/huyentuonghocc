@@ -23,13 +23,14 @@ export const TarotPage: React.FC = () => {
   const [loading, setLoading] = useState(pageState.loading || false);
   const [interpretation, setInterpretation] = useState<string | null>(pageState.result || null);
   const [error, setError] = useState<string | null>(pageState.error || null);
-  const [revealedCount, setRevealedCount] = useState(pageState.revealedCount || 0);
+  const [revealedIndices, setRevealedIndices] = useState<number[]>(pageState.revealedIndices || []);
   const [question, setQuestion] = useState(pageState.question || '');
   const [topic, setTopic] = useState(pageState.topic || 'Tổng quan');
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
   const [preRenderedPDF, setPreRenderedPDF] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const contentRef = React.useRef<HTMLDivElement>(null);
 
   // Sync with context - only when pageState changes from OUTSIDE (e.g. background finish or history select)
   useEffect(() => {
@@ -40,14 +41,23 @@ export const TarotPage: React.FC = () => {
     if (pageState.selectedCards !== undefined && JSON.stringify(pageState.selectedCards) !== JSON.stringify(selectedCards)) {
       setSelectedCards(pageState.selectedCards);
     }
-    if (pageState.revealedCount !== undefined && pageState.revealedCount !== revealedCount) setRevealedCount(pageState.revealedCount);
+    if (pageState.revealedIndices !== undefined && JSON.stringify(pageState.revealedIndices) !== JSON.stringify(revealedIndices)) {
+      setRevealedIndices(pageState.revealedIndices);
+    }
     if (pageState.question !== undefined && pageState.question !== question) setQuestion(pageState.question);
     if (pageState.topic !== undefined && pageState.topic !== topic) setTopic(pageState.topic);
   }, [pageState]);
 
+  // Scroll to top of content when mode or topic changes
+  useEffect(() => {
+    if (mode || topic !== 'Tổng quan') {
+      contentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [mode, topic]);
+
   useEffect(() => {
     if (interpretation) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      contentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }, [interpretation]);
 
@@ -76,7 +86,7 @@ export const TarotPage: React.FC = () => {
       setMode(null);
       setSelectedCards([]);
       setInterpretation(null);
-      setRevealedCount(0);
+      setRevealedIndices([]);
       setQuestion('');
       setTopic('Tổng quan');
       resetState('tarot');
@@ -96,27 +106,28 @@ export const TarotPage: React.FC = () => {
     const newMode = count === 1 ? 'single' : 'triple';
     setMode(newMode);
     setSelectedCards(drawn);
-    setRevealedCount(0);
+    setRevealedIndices([]);
     setInterpretation(null);
     setError(null);
     
     updateState('tarot', { 
       mode: newMode, 
       selectedCards: drawn, 
-      revealedCount: 0, 
+      revealedIndices: [], 
       result: null, 
       error: null 
     });
   };
 
-  const handleReveal = () => {
-    setRevealedCount(prev => {
-      const nextCount = prev + 1;
-      updateState('tarot', { revealedCount: nextCount });
-      if (nextCount === selectedCards.length) {
+  const handleReveal = (index: number) => {
+    setRevealedIndices(prev => {
+      if (prev.includes(index)) return prev;
+      const nextIndices = [...prev, index];
+      updateState('tarot', { revealedIndices: nextIndices });
+      if (nextIndices.length === selectedCards.length) {
         analyzeReading();
       }
-      return nextCount;
+      return nextIndices;
     });
   };
 
@@ -179,7 +190,8 @@ export const TarotPage: React.FC = () => {
       isReversed: c.isReversed
     }));
     setSelectedCards(restoredCards);
-    setRevealedCount(restoredCards.length);
+    const indices = restoredCards.map((_: any, i: number) => i);
+    setRevealedIndices(indices);
     
     updateState('tarot', {
       question: q,
@@ -187,7 +199,7 @@ export const TarotPage: React.FC = () => {
       mode: m,
       result: interp,
       selectedCards: restoredCards,
-      revealedCount: restoredCards.length
+      revealedIndices: indices
     });
   };
 
@@ -205,7 +217,7 @@ export const TarotPage: React.FC = () => {
   };
 
   return (
-    <div className="pt-32 pb-20 px-4 max-w-7xl mx-auto">
+    <div className="pt-32 pb-20 px-4 max-w-7xl mx-auto" ref={contentRef}>
       <div className="text-center mb-8 md:mb-12">
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif font-bold mb-4">Bói Bài Tarot</h1>
         <p className="text-mystic-gold tracking-[0.15em] md:tracking-[0.2em] uppercase text-[10px] md:text-sm px-4 mb-6">
@@ -330,8 +342,8 @@ export const TarotPage: React.FC = () => {
                 <TarotFlipCard
                   card={item.card}
                   isReversed={item.isReversed}
-                  onReveal={handleReveal}
-                  isInitialFlipped={idx < revealedCount}
+                  onReveal={() => handleReveal(idx)}
+                  isInitialFlipped={revealedIndices.includes(idx)}
                   label={mode === 'triple' ? (idx === 0 ? 'Quá khứ' : idx === 1 ? 'Hiện tại' : 'Tương lai') : undefined}
                 />
               </div>
@@ -374,7 +386,7 @@ export const TarotPage: React.FC = () => {
                 <div className="mt-8 md:mt-12 pt-6 md:pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
                   <p className="text-gray-500 text-xs md:text-sm italic text-center md:text-left">Hãy suy ngẫm về những thông điệp này trong không gian yên tĩnh.</p>
                   <button
-                    onClick={() => { setMode(null); setSelectedCards([]); setInterpretation(null); }}
+                    onClick={() => { setMode(null); setSelectedCards([]); setInterpretation(null); setRevealedIndices([]); }}
                     className="w-full md:w-auto flex items-center justify-center gap-2 px-8 md:px-10 py-3.5 md:py-4 bg-mystic-purple/20 hover:bg-mystic-purple/40 text-mystic-purple rounded-full transition-all border border-mystic-purple/30 font-bold tracking-widest uppercase text-[10px] md:text-xs"
                   >
                     <RefreshCw className="w-4 h-4" /> Rút lại bộ bài mới

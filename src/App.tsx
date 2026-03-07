@@ -16,6 +16,8 @@ import { Toaster } from 'react-hot-toast';
 const ScrollToTop = () => {
   const { pathname } = useLocation();
   useEffect(() => {
+    // Only scroll to top when switching between main pages
+    // Sub-category changes within a page will handle their own scrolling
     window.scrollTo(0, 0);
   }, [pathname]);
   return null;
