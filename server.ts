@@ -109,13 +109,15 @@ async function logToGoogleSheet(data: any) {
     return true;
   } catch (error: any) {
     console.error("Error logging to Google Sheets:");
+    let errorMsg = error.message || "Unknown error";
     if (error.response) {
       console.error("Status:", error.response.status);
       console.error("Data:", JSON.stringify(error.response.data, null, 2));
+      errorMsg = `Google API Error: ${error.response.data.error?.message || error.response.statusText}`;
     } else {
       console.error("Message:", error.message);
     }
-    return false;
+    return errorMsg;
   }
 }
 
@@ -143,10 +145,10 @@ app.post("/api/log-submission", async (req, res) => {
 
   const success = await logToGoogleSheet(logData);
 
-  if (success) {
+  if (success === true) {
     res.json({ status: "ok" });
   } else {
-    res.status(500).json({ error: "Failed to log to Google Sheets" });
+    res.status(500).json({ error: success || "Failed to log to Google Sheets" });
   }
 });
 

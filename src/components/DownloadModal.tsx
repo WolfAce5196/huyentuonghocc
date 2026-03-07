@@ -102,7 +102,6 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose, o
       if (!logResponse.ok) {
         const errorData = await logResponse.json();
         console.error("Failed to log to Google Sheets:", errorData.error);
-        // We don't block the download, but we log the error
       } else {
         console.log("Successfully logged to Google Sheets");
       }

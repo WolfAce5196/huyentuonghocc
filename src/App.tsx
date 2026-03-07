@@ -11,6 +11,8 @@ import { NumerologyPage } from './pages/NumerologyPage';
 import { ReadingProvider } from './context/ReadingContext';
 import { NavigationArrows } from './components/NavigationArrows';
 
+import { Toaster } from 'react-hot-toast';
+
 const ScrollToTop = () => {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -22,6 +24,7 @@ const ScrollToTop = () => {
 export default function App() {
   return (
     <ReadingProvider>
+      <Toaster position="top-center" reverseOrder={false} />
       <Router>
         <ScrollToTop />
         <div className="min-h-screen text-white selection:bg-mystic-purple selection:text-white">
