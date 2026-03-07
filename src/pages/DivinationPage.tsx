@@ -370,6 +370,7 @@ export const DivinationPage: React.FC = () => {
         onClose={() => setIsDownloadOpen(false)}
         onDownload={handleDownload}
         title="Gieo Đài Âm Dương"
+        interpretation={result || ''}
       />
     </div>
   );

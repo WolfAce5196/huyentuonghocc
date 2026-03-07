@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Download, User, Phone, Mail, ChevronRight, FileText, FileJson } from 'lucide-react';
+import { GoogleGenAI } from "@google/genai";
 
 interface DownloadModalProps {
   isOpen: boolean;
   onClose: () => void;
   onDownload: (userData: UserData, format: 'txt' | 'pdf') => void;
   title: string;
+  interpretation: string;
 }
 
 export interface UserData {
@@ -17,12 +19,14 @@ export interface UserData {
 
 const STORAGE_KEY = 'mystic_user_suggestions';
 
-export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose, onDownload, title }) => {
+export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose, onDownload, title, interpretation }) => {
   const [formData, setFormData] = useState<UserData>({
     fullName: '',
     phone: '',
     email: '',
   });
+
+  const [isLogging, setIsLogging] = useState(false);
 
   const [suggestions, setSuggestions] = useState<{
     fullName: string[];
@@ -58,11 +62,50 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose, o
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newSuggestions));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    saveToSuggestions(formData);
-    onDownload(formData, downloadFormat);
-    onClose();
+    setIsLogging(true);
+    
+    try {
+      // Summarize on frontend (as per guidelines: NEVER call Gemini from backend)
+      let summary = interpretation.substring(0, 200) + "...";
+      const apiKey = process.env.GEMINI_API_KEY;
+      
+      if (!apiKey) {
+        console.warn("GEMINI_API_KEY is missing on frontend. Using fallback summary.");
+      } else {
+        try {
+          const ai = new GoogleGenAI({ apiKey });
+          const response = await ai.models.generateContent({
+            model: "gemini-2.0-flash",
+            contents: [{ role: "user", parts: [{ text: `Hãy tóm tắt bản luận giải sau đây một cách ngắn gọn, xúc tích, logic và đầy đủ nhất (khoảng 2-3 câu): \n\n${interpretation}` }] }]
+          });
+          if (response.text) {
+            summary = response.text;
+          }
+        } catch (aiError) {
+          console.error("AI Summarization failed on frontend:", aiError);
+        }
+      }
+
+      // Log to Google Sheets via backend
+      await fetch('/api/log-submission', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userData: formData,
+          category: title,
+          summary: summary
+        })
+      });
+    } catch (error) {
+      console.error("Failed to log submission:", error);
+    } finally {
+      setIsLogging(false);
+      saveToSuggestions(formData);
+      onDownload(formData, downloadFormat);
+      onClose();
+    }
   };
 
   const selectSuggestion = (field: keyof UserData, value: string) => {
@@ -228,10 +271,17 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose, o
 
               <button
                 type="submit"
-                className="w-full py-4 bg-mystic-purple hover:bg-mystic-purple/80 text-white rounded-xl font-bold tracking-[0.2em] uppercase transition-all shadow-[0_0_20px_rgba(126,34,206,0.3)] flex items-center justify-center gap-3"
+                disabled={isLogging}
+                className={`w-full py-4 bg-mystic-purple hover:bg-mystic-purple/80 text-white rounded-xl font-bold tracking-[0.2em] uppercase transition-all shadow-[0_0_20px_rgba(126,34,206,0.3)] flex items-center justify-center gap-3 ${
+                  isLogging ? 'opacity-70 cursor-not-allowed' : ''
+                }`}
               >
-                <Download className="w-5 h-5" />
-                Tải Về Ngay
+                {isLogging ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Download className="w-5 h-5" />
+                )}
+                {isLogging ? 'Đang Xử Lý...' : 'Tải Về Ngay'}
               </button>
             </form>
 

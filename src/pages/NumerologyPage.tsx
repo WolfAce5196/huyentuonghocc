@@ -165,27 +165,33 @@ ${result.advice.map(a => `- ${a}`).join('\n')}
     });
   };
 
+  const getNumerologyMarkdown = (res: any) => {
+    if (!res) return '';
+    if (typeof res === 'string') return res;
+    return `
+# Thần Số Học: ${res.mainNumber}
+
+## Tổng Quan
+${res.overview}
+
+## Các Chỉ Số Cốt Lõi
+${res.coreNumbers.map((c: any) => `### ${c.name}: ${c.value}\n${c.meaning}`).join('\n\n')}
+
+## Điểm Mạnh
+${res.strengths.map((s: any) => `- ${s}`).join('\n')}
+
+## Điểm Yếu
+${res.weaknesses.map((w: any) => `- ${w}`).join('\n')}
+
+## Lời Khuyên
+${res.advice.map((a: any) => `- ${a}`).join('\n')}
+    `;
+  };
+
   const handleDownload = (userData: UserData, format: 'txt' | 'pdf') => {
     if (!result) return;
     if (format === 'pdf') {
-      const content = `
-SỐ CHỦ ĐẠO: ${result.mainNumber}
-
-TỔNG QUAN:
-${result.overview}
-
-CÁC CHỈ SỐ CỐT LÕI:
-${result.coreNumbers.map(c => `- ${c.name}: ${c.value}\n  ${c.meaning}`).join('\n')}
-
-ĐIỂM MẠNH:
-${result.strengths.map(s => `- ${s}`).join('\n')}
-
-ĐIỂM YẾU:
-${result.weaknesses.map(w => `- ${w}`).join('\n')}
-
-LỜI KHUYÊN:
-${result.advice.map(a => `- ${a}`).join('\n')}
-`;
+      const content = getNumerologyMarkdown(result);
       downloadNumerologyPDF(userData, content, preRenderedPDF || undefined);
     } else {
       const content = `
@@ -1115,6 +1121,7 @@ ${result.advice.map(a => `- ${a}`).join('\n')}
         onClose={() => setIsDownloadOpen(false)}
         onDownload={handleDownload}
         title="Thần Số Học"
+        interpretation={getNumerologyMarkdown(result)}
       />
     </div>
   );

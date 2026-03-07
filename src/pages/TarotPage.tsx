@@ -416,6 +416,7 @@ export const TarotPage: React.FC = () => {
         onClose={() => setIsDownloadOpen(false)}
         onDownload={handleDownload}
         title="Bói Bài Tarot"
+        interpretation={interpretation || ''}
       />
     </div>
   );

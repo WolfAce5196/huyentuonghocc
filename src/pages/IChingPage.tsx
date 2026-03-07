@@ -474,6 +474,7 @@ export const IChingPage: React.FC = () => {
         onClose={() => setIsDownloadOpen(false)}
         onDownload={handleDownload}
         title="Gieo Quẻ Kinh Dịch"
+        interpretation={result || ''}
       />
     </div>
   );

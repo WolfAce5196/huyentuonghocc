@@ -487,6 +487,7 @@ ${analysis.advice}
         onClose={() => setIsDownloadOpen(false)}
         onDownload={handleDownload}
         title="Nhân Tướng Học"
+        interpretation={result?.analysis ? getAnalysisMarkdown(result.analysis) : ''}
       />
     </div>
   );
