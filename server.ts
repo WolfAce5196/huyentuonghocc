@@ -5,7 +5,6 @@ import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import history from "connect-history-api-fallback";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,6 +19,11 @@ console.log("GOOGLE_SERVICE_ACCOUNT_EMAIL:", process.env.GOOGLE_SERVICE_ACCOUNT_
 console.log("GOOGLE_SHEET_ID:", process.env.GOOGLE_SHEET_ID || "Using default");
 
 app.use(express.json());
+
+// Health check
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", env: process.env.NODE_ENV || "development" });
+});
 
 // Google Sheets logging
 async function logToGoogleSheet(data: any) {
@@ -162,64 +166,35 @@ app.post("/api/log-submission", async (req, res) => {
 async function startServer() {
   let vite: any;
 
-  // SPA Fallback middleware for API routes exclusion
-  app.use(history({
-    index: '/index.html',
-    rewrites: [
-      { from: /^\/api\/.*$/, to: (context) => context.parsedUrl.path }
-    ],
-    verbose: false
-  }));
-
   if (process.env.NODE_ENV !== "production") {
     vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "custom",
     });
     app.use(vite.middlewares);
+    
+    app.get("*", async (req, res, next) => {
+      const url = req.originalUrl;
+      if (url.startsWith("/api/")) return next();
+      
+      try {
+        const templatePath = path.resolve(__dirname, "index.html");
+        let template = fs.readFileSync(templatePath, "utf-8");
+        template = await vite.transformIndexHtml(url, template);
+        res.status(200).set({ "Content-Type": "text/html" }).end(template);
+      } catch (e: any) {
+        if (vite) vite.ssrFixStacktrace(e);
+        next(e);
+      }
+    });
     console.log("[Server] Vite middleware loaded (Development)");
   } else {
     app.use(express.static(path.resolve(__dirname, "dist")));
+    app.get("*", (req, res) => {
+      res.sendFile(path.resolve(__dirname, "dist", "index.html"));
+    });
     console.log("[Server] Static middleware loaded (Production)");
   }
-
-  // Unified catch-all route for SPA fallback (Final fallback)
-  app.get("*", async (req, res, next) => {
-    const url = req.originalUrl;
-
-    // Skip API routes (already handled by history middleware but just in case)
-    if (url.startsWith("/api/")) {
-      return next();
-    }
-
-    console.log(`[Server] Catch-all hit for: ${url} (Env: ${process.env.NODE_ENV || 'development'})`);
-
-    try {
-      if (process.env.NODE_ENV !== "production" && vite) {
-        const templatePath = path.resolve(__dirname, "index.html");
-        if (fs.existsSync(templatePath)) {
-          let template = fs.readFileSync(templatePath, "utf-8");
-          template = await vite.transformIndexHtml(url, template);
-          res.status(200).set({ "Content-Type": "text/html" }).end(template);
-        } else {
-          console.error(`[Server] index.html not found at ${templatePath}`);
-          next();
-        }
-      } else {
-        const indexPath = path.resolve(__dirname, "dist", "index.html");
-        if (fs.existsSync(indexPath)) {
-          res.sendFile(indexPath);
-        } else {
-          console.error(`[Server] index.html not found at ${indexPath}`);
-          res.status(404).send("Not Found - index.html missing in dist");
-        }
-      }
-    } catch (e: any) {
-      if (vite) vite.ssrFixStacktrace(e);
-      console.error("[Server] Catch-all error:", e);
-      next(e);
-    }
-  });
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`[Server] Running on http://0.0.0.0:${PORT}`);
@@ -227,4 +202,7 @@ async function startServer() {
   });
 }
 
-startServer();
+startServer().catch((err) => {
+  console.error("Failed to start server:", err);
+  process.exit(1);
+});
