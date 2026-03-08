@@ -88,29 +88,22 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose, o
       }
 
       // Log to Google Sheets via backend
-      const logPromise = fetch('/api/log-submission', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userData: formData,
-          category: title,
-          summary: summary
-        })
-      }).then(async (res) => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Lỗi không xác định");
-        return data;
-      });
-
-      toast.promise(logPromise, {
-        loading: 'Đang đồng bộ dữ liệu lên Google Sheets...',
-        success: 'Đã lưu dữ liệu thành công!',
-        error: (err) => `Lỗi Google Sheets: ${err.message}`,
-      });
+      try {
+        await fetch('/api/log-submission', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userData: formData,
+            category: title,
+            summary: summary
+          })
+        });
+      } catch (logError) {
+        console.error("Silent logging failed:", logError);
+      }
 
     } catch (error) {
       console.error("Failed to process submission:", error);
-      toast.error("Có lỗi xảy ra khi xử lý dữ liệu.");
     } finally {
       setIsLogging(false);
       saveToSuggestions(formData);
