@@ -146,7 +146,10 @@ export const TarotPage: React.FC = () => {
 
       const stream = safeGenerateContentStream({
         model: MODELS.TEXT,
-        contents: [{ parts: [{ text: SYSTEM_PROMPTS.TAROT + "\n\n" + getCurrentContext() }, { text: prompt }] }],
+        contents: [{ parts: [{ text: prompt }] }],
+        config: {
+          systemInstruction: SYSTEM_PROMPTS.TAROT + "\n\n" + getCurrentContext()
+        }
       });
 
       let fullText = '';

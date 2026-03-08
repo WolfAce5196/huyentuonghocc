@@ -130,7 +130,10 @@ export const DivinationPage: React.FC = () => {
 
       const stream = safeGenerateContentStream({
         model: MODELS.TEXT,
-        contents: [{ parts: [{ text: SYSTEM_PROMPTS.DIVINATION + "\n\n" + getCurrentContext() }, { text: prompt }] }],
+        contents: [{ parts: [{ text: prompt }] }],
+        config: {
+          systemInstruction: SYSTEM_PROMPTS.DIVINATION + "\n\n" + getCurrentContext()
+        }
       });
 
       let fullText = '';

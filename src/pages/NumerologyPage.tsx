@@ -116,8 +116,11 @@ ${result.advice.map(a => `- ${a}`).join('\n')}
 
       const response = await safeGenerateContent({
         model: MODELS.TEXT,
-        contents: [{ parts: [{ text: SYSTEM_PROMPTS.NUMEROLOGY + "\n\n" + getCurrentContext() }, { text: prompt }] }],
-        config: { responseMimeType: "application/json" }
+        contents: [{ parts: [{ text: prompt }] }],
+        config: {
+          systemInstruction: SYSTEM_PROMPTS.NUMEROLOGY + "\n\n" + getCurrentContext(),
+          responseMimeType: "application/json"
+        }
       });
 
       const resultText = response.text || "";

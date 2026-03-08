@@ -149,7 +149,10 @@ export const IChingPage: React.FC = () => {
 
       const stream = safeGenerateContentStream({
         model: MODELS.TEXT,
-        contents: [{ parts: [{ text: SYSTEM_PROMPTS.ICHING + "\n\n" + getCurrentContext() + "\n\n" + interpretationPrompt }] }],
+        contents: [{ parts: [{ text: interpretationPrompt }] }],
+        config: {
+          systemInstruction: SYSTEM_PROMPTS.ICHING + "\n\n" + getCurrentContext()
+        }
       });
 
       let fullText = '';
@@ -201,12 +204,14 @@ export const IChingPage: React.FC = () => {
         },
       });
 
-      for (const part of response.candidates[0].content.parts) {
-        if (part.inlineData) {
-          const imageUrl = `data:image/png;base64,${part.inlineData.data}`;
-          setGeneratedImageUrl(imageUrl);
-          updateState('iching', { generatedImageUrl: imageUrl });
-          break;
+      if (response.candidates && response.candidates[0]?.content?.parts) {
+        for (const part of response.candidates[0].content.parts) {
+          if (part.inlineData) {
+            const imageUrl = `data:image/png;base64,${part.inlineData.data}`;
+            setGeneratedImageUrl(imageUrl);
+            updateState('iching', { generatedImageUrl: imageUrl });
+            break;
+          }
         }
       }
     } catch (err) {

@@ -108,34 +108,36 @@ export const PhysiognomyPage: React.FC = () => {
       const base64Data = image.split(',')[1];
       
       const parts: any[] = [
-        { text: SYSTEM_PROMPTS.PHYSIOGNOMY + "\n\n" + getCurrentContext() },
+        { text: "HÌNH ẢNH MỚI CẦN LUẬN GIẢI:" },
+        {
+          inlineData: {
+            mimeType: "image/jpeg",
+            data: base64Data,
+          },
+        },
       ];
 
       if (history.length > 0) {
-        parts.push({ text: "DỮ LIỆU QUÁ KHỨ (CHỈ DÙNG ĐỂ ĐỐI CHIẾU NHẤT QUÁN, KHÔNG HIỂN THỊ TRONG KẾT QUẢ):" });
+        parts.unshift({ text: "DỮ LIỆU QUÁ KHỨ (CHỈ DÙNG ĐỂ ĐỐI CHIẾU NHẤT QUÁN, KHÔNG HIỂN THỊ TRONG KẾT QUẢ):" });
         history.slice(-2).forEach((item, index) => {
           const histBase64 = item.result.image.split(',')[1];
-          parts.push({
+          parts.unshift({
             inlineData: {
               mimeType: "image/jpeg",
               data: histBase64,
             },
           });
-          parts.push({ text: `Luận giải quá khứ ${index + 1}: ${item.result.interpretation}` });
+          parts.unshift({ text: `Luận giải quá khứ ${index + 1}: ${JSON.stringify(item.result.interpretation)}` });
         });
-        parts.push({ text: "HÌNH ẢNH MỚI CẦN LUẬN GIẢI:" });
       }
-
-      parts.push({
-        inlineData: {
-          mimeType: "image/jpeg",
-          data: base64Data,
-        },
-      });
 
       const response = await safeGenerateContent({
         model: MODELS.VISION,
         contents: [{ parts }],
+        config: {
+          systemInstruction: SYSTEM_PROMPTS.PHYSIOGNOMY + "\n\n" + getCurrentContext(),
+          responseMimeType: "application/json"
+        }
       });
 
       const resultData = extractJSON(response.text || "{}") as PhysiognomyAnalysis;
@@ -281,7 +283,7 @@ ${analysis.advice}
             >
               {image ? (
                 <>
-                  <img src={image} alt="Preview" className="w-full h-full object-cover" />
+                  <img src={image} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <Camera className="w-10 h-10 md:w-12 md:h-12 text-white" />
                   </div>
@@ -424,17 +426,17 @@ ${analysis.advice}
                     <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
                       <h4 className="text-mystic-gold font-bold text-sm uppercase tracking-widest mb-3">Tam Đình</h4>
                       <ul className="space-y-2 text-sm">
-                        <li><span className="text-gray-500">Thượng:</span> {result.analysis.threeRegions.upper}</li>
-                        <li><span className="text-gray-500">Trung:</span> {result.analysis.threeRegions.middle}</li>
-                        <li><span className="text-gray-500">Hạ:</span> {result.analysis.threeRegions.lower}</li>
+                        <li><span className="text-gray-500">Thượng:</span> {result.analysis?.threeRegions?.upper}</li>
+                        <li><span className="text-gray-500">Trung:</span> {result.analysis?.threeRegions?.middle}</li>
+                        <li><span className="text-gray-500">Hạ:</span> {result.analysis?.threeRegions?.lower}</li>
                       </ul>
                     </div>
                     <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
                       <h4 className="text-mystic-gold font-bold text-sm uppercase tracking-widest mb-3">Ngũ Nhạc</h4>
                       <ul className="space-y-2 text-sm">
-                        <li><span className="text-gray-500">Nam (Trán):</span> {result.analysis.fiveMountains.forehead}</li>
-                        <li><span className="text-gray-500">Trung (Mũi):</span> {result.analysis.fiveMountains.nose}</li>
-                        <li><span className="text-gray-500">Bắc (Cằm):</span> {result.analysis.fiveMountains.chin}</li>
+                        <li><span className="text-gray-500">Nam (Trán):</span> {result.analysis?.fiveMountains?.forehead}</li>
+                        <li><span className="text-gray-500">Trung (Mũi):</span> {result.analysis?.fiveMountains?.nose}</li>
+                        <li><span className="text-gray-500">Bắc (Cằm):</span> {result.analysis?.fiveMountains?.chin}</li>
                       </ul>
                     </div>
                   </section>
@@ -442,7 +444,7 @@ ${analysis.advice}
                   <section>
                     <h4 className="text-mystic-gold font-bold text-sm uppercase tracking-widest mb-4 border-l-2 border-mystic-gold pl-3">Chi tiết Ngũ Quan</h4>
                     <div className="space-y-4">
-                      {result.analysis.features.map((f, i) => (
+                      {result.analysis?.features?.map((f, i) => (
                         <div key={i} className="p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
                           <h5 className="font-bold text-mystic-gold mb-1">{f.part}</h5>
                           <p className="text-xs text-gray-400 mb-2 italic">{f.description}</p>
