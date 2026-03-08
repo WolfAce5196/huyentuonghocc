@@ -67,13 +67,11 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose, o
     setIsLogging(true);
     
     try {
-      // Summarize on frontend (as per guidelines: NEVER call Gemini from backend)
+      // Summarize on frontend
       let summary = interpretation.substring(0, 200) + "...";
       const apiKey = process.env.GEMINI_API_KEY;
       
-      if (!apiKey) {
-        console.warn("GEMINI_API_KEY is missing on frontend. Using fallback summary.");
-      } else {
+      if (apiKey) {
         try {
           const ai = new GoogleGenAI({ apiKey });
           const response = await ai.models.generateContent({
@@ -84,12 +82,12 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose, o
             summary = response.text;
           }
         } catch (aiError) {
-          console.error("AI Summarization failed on frontend:", aiError);
+          console.error("AI Summarization failed:", aiError);
         }
       }
 
-      // Log to Google Sheets via backend
-      const logResponse = await fetch('/api/log-submission', {
+      // Log to Google Sheets via backend (fire and forget or just don't show toast)
+      fetch('/api/log-submission', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -97,19 +95,15 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose, o
           category: title,
           summary: summary
         })
-      });
+      }).catch(err => console.error("Background logging failed:", err));
 
-      if (!logResponse.ok) {
-        const errorData = await logResponse.json();
-        console.error("Failed to log to Google Sheets:", errorData.error);
-      } else {
-        console.log("Successfully logged to Google Sheets");
-      }
     } catch (error) {
-      console.error("Failed to log submission:", error);
+      console.error("Failed to process submission:", error);
     } finally {
       setIsLogging(false);
       saveToSuggestions(formData);
+      
+      // Always trigger download immediately
       onDownload(formData, downloadFormat);
       onClose();
     }

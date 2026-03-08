@@ -29,9 +29,11 @@ app.get("/api/health", (req, res) => {
 async function logToGoogleSheet(data: any) {
   try {
     let privateKey = process.env.GOOGLE_PRIVATE_KEY;
-    if (!privateKey) {
-      console.error("GOOGLE_PRIVATE_KEY is missing from environment variables.");
-      return false;
+    const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL?.trim();
+    
+    if (!clientEmail || !privateKey) {
+      console.error("Missing Google Service Account credentials. EMAIL:", !!clientEmail, "KEY:", !!privateKey);
+      return "Chưa cấu hình Google Service Account (Email hoặc Private Key).";
     }
 
     // Handle escaped newlines
@@ -44,16 +46,11 @@ async function logToGoogleSheet(data: any) {
 
     privateKey = privateKey.trim();
     
-    const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL?.trim();
-    
-    if (!clientEmail || !privateKey) {
-      console.error("Missing Google Service Account credentials. EMAIL:", !!clientEmail, "KEY:", !!privateKey);
-      return false;
+    if (!privateKey.includes("-----BEGIN PRIVATE KEY-----")) {
+      console.warn("GOOGLE_PRIVATE_KEY missing standard header. Attempting to wrap it.");
+      // If it's just the raw key, we might need to wrap it, but usually it should be provided correctly.
+      // For now, just warn.
     }
-
-    console.log("Private Key starts with:", privateKey.substring(0, 30), "...");
-    console.log("Private Key length:", privateKey.length);
-    console.log("Service Account Email:", clientEmail);
 
     const auth = new google.auth.GoogleAuth({
       credentials: {
@@ -74,28 +71,56 @@ async function logToGoogleSheet(data: any) {
       }
     }
 
-    if (!privateKey.includes("-----BEGIN PRIVATE KEY-----")) {
-      console.warn("GOOGLE_PRIVATE_KEY might be missing the standard header/footer.");
+    console.log("Attempting to connect to Google Sheets API with ID:", spreadsheetId);
+    
+    let spreadsheet;
+    try {
+      spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
+    } catch (connError: any) {
+      console.error("Failed to connect to spreadsheet:", connError.message);
+      if (connError.message?.includes("not found")) {
+        return "Không tìm thấy Spreadsheet ID. Vui lòng kiểm tra lại GOOGLE_SHEET_ID.";
+      }
+      if (connError.message?.includes("permission") || connError.code === 403) {
+        return "Lỗi phân quyền. Hãy đảm bảo bạn đã chia sẻ Spreadsheet cho Email Service Account: " + clientEmail;
+      }
+      throw connError;
     }
 
-    console.log("Attempting to connect to Google Sheets API...");
-    const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
     console.log("Successfully connected to Spreadsheet:", spreadsheet.data.properties?.title);
     
     const sheetName = "Data";
     const sheetExists = spreadsheet.data.sheets?.some(s => s.properties?.title === sheetName);
     
     if (!sheetExists) {
-      console.error(`Sheet named "${sheetName}" not found in spreadsheet. Available sheets:`, 
-        spreadsheet.data.sheets?.map(s => s.properties?.title).join(", "));
-      return false;
+      console.error(`Sheet named "${sheetName}" not found. Creating it...`);
+      try {
+        await sheets.spreadsheets.batchUpdate({
+          spreadsheetId,
+          requestBody: {
+            requests: [{
+              addSheet: {
+                properties: { title: sheetName }
+              }
+            }]
+          }
+        });
+        // Add headers
+        await sheets.spreadsheets.values.update({
+          spreadsheetId,
+          range: `'${sheetName}'!A1:I1`,
+          valueInputOption: "USER_ENTERED",
+          requestBody: {
+            values: [["Thời gian", "Họ tên", "Số điện thoại", "Email", "Danh mục", "Tóm tắt", "Link PDF", "TT Gmail", "TT Zalo"]]
+          }
+        });
+      } catch (createError: any) {
+        console.error("Failed to create sheet 'Data':", createError.message);
+        return "Không tìm thấy sheet 'Data' và không thể tự động tạo. Hãy tạo sheet tên 'Data' thủ công.";
+      }
     }
 
-    // Wrap sheet name in single quotes to handle spaces or special characters
     const range = `'${sheetName}'!A:I`;
-
-    console.log(`Appending data to sheet: ${sheetName} (Range: ${range})`);
-
     const response = await sheets.spreadsheets.values.append({
       spreadsheetId,
       range, 
@@ -116,19 +141,11 @@ async function logToGoogleSheet(data: any) {
         ],
       },
     });
-    console.log("Successfully appended data to Google Sheets:", response.statusText);
+    console.log("Successfully appended data to Google Sheets");
     return true;
   } catch (error: any) {
-    console.error("Error logging to Google Sheets:");
-    let errorMsg = error.message || "Unknown error";
-    if (error.response) {
-      console.error("Status:", error.response.status);
-      console.error("Data:", JSON.stringify(error.response.data, null, 2));
-      errorMsg = `Google API Error: ${error.response.data.error?.message || error.response.statusText}`;
-    } else {
-      console.error("Message:", error.message);
-    }
-    return errorMsg;
+    console.error("Error logging to Google Sheets:", error.message);
+    return error.message || "Lỗi không xác định khi ghi vào Google Sheets.";
   }
 }
 
@@ -144,16 +161,17 @@ app.post("/api/log-submission", async (req, res) => {
 
   const logData = {
     time,
-    fullName: userData.fullName,
-    phone: userData.phone,
-    email: userData.email,
-    category,
-    summary,
+    fullName: userData.fullName || "N/A",
+    phone: userData.phone || "N/A",
+    email: userData.email || "N/A",
+    category: category || "N/A",
+    summary: summary || "N/A",
     pdfLink: "Tải trực tiếp từ trình duyệt",
     ttGmail: "Chưa Gửi",
     ttZalo: "Chưa Gửi",
   };
 
+  console.log("Logging submission to Google Sheets:", JSON.stringify(logData, null, 2));
   const success = await logToGoogleSheet(logData);
 
   if (success === true) {

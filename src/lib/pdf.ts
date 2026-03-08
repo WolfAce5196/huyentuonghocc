@@ -97,9 +97,9 @@ const createPDFTemplate = (title: string, userData: UserData, resources: PDFReso
     <div style="margin-bottom: 45px; background: linear-gradient(135deg, #1a1a24 0%, #121218 100%); padding: 35px; border-radius: 24px; border: 1px solid rgba(250, 204, 21, 0.3); box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
       <h3 style="color: #facc15; margin-top: 0; font-size: 20px; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 25px; border-left: 4px solid #facc15; padding-left: 15px;">Thông tin đương chủ</h3>
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-        <p style="margin: 0; font-size: 16px;"><strong style="color: #facc15;">Họ tên:</strong> ${userData.fullName}</p>
-        <p style="margin: 0; font-size: 16px;"><strong style="color: #facc15;">Số điện thoại:</strong> ${userData.phone}</p>
-        <p style="margin: 0; font-size: 16px;"><strong style="color: #facc15;">Email:</strong> ${userData.email}</p>
+        <p style="margin: 0; font-size: 16px;"><strong style="color: #facc15;">Họ tên:</strong> ${userData.fullName || 'N/A'}</p>
+        <p style="margin: 0; font-size: 16px;"><strong style="color: #facc15;">Số điện thoại:</strong> ${userData.phone || 'N/A'}</p>
+        <p style="margin: 0; font-size: 16px;"><strong style="color: #facc15;">Email:</strong> ${userData.email || 'N/A'}</p>
         <p style="margin: 0; font-size: 16px;"><strong style="color: #facc15;">Thời khắc:</strong> ${new Date().toLocaleString('vi-VN')}</p>
       </div>
     </div>
