@@ -36,7 +36,7 @@ async function logToGoogleSheet(data: any) {
       return "Chưa cấu hình Google Service Account (Email hoặc Private Key).";
     }
 
-    // Handle escaped newlines
+    // Handle escaped newlines and potential wrapping issues
     privateKey = privateKey.replace(/\\n/g, "\n");
     
     // Remove quotes if present
@@ -47,9 +47,10 @@ async function logToGoogleSheet(data: any) {
     privateKey = privateKey.trim();
     
     if (!privateKey.includes("-----BEGIN PRIVATE KEY-----")) {
-      console.warn("GOOGLE_PRIVATE_KEY missing standard header. Attempting to wrap it.");
-      // If it's just the raw key, we might need to wrap it, but usually it should be provided correctly.
-      // For now, just warn.
+      console.warn("GOOGLE_PRIVATE_KEY missing standard header. Attempting to fix.");
+      if (!privateKey.includes("-----END PRIVATE KEY-----")) {
+        privateKey = `-----BEGIN PRIVATE KEY-----\n${privateKey}\n-----END PRIVATE KEY-----\n`;
+      }
     }
 
     const auth = new google.auth.GoogleAuth({

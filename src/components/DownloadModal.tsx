@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Download, User, Phone, Mail, ChevronRight, FileText, FileJson } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
+import { toast } from 'react-hot-toast';
 
 interface DownloadModalProps {
   isOpen: boolean;
@@ -86,8 +87,8 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose, o
         }
       }
 
-      // Log to Google Sheets via backend (fire and forget or just don't show toast)
-      fetch('/api/log-submission', {
+      // Log to Google Sheets via backend
+      const logPromise = fetch('/api/log-submission', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -95,10 +96,21 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose, o
           category: title,
           summary: summary
         })
-      }).catch(err => console.error("Background logging failed:", err));
+      }).then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Lỗi không xác định");
+        return data;
+      });
+
+      toast.promise(logPromise, {
+        loading: 'Đang đồng bộ dữ liệu lên Google Sheets...',
+        success: 'Đã lưu dữ liệu thành công!',
+        error: (err) => `Lỗi Google Sheets: ${err.message}`,
+      });
 
     } catch (error) {
       console.error("Failed to process submission:", error);
+      toast.error("Có lỗi xảy ra khi xử lý dữ liệu.");
     } finally {
       setIsLogging(false);
       saveToSuggestions(formData);
