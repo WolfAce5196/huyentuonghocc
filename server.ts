@@ -22,7 +22,15 @@ app.use(express.json());
 
 // Health check
 app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", env: process.env.NODE_ENV || "development" });
+  res.json({ 
+    status: "ok", 
+    env: process.env.NODE_ENV || "development",
+    googleSheets: {
+      email: !!process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+      key: !!process.env.GOOGLE_PRIVATE_KEY,
+      sheetId: !!process.env.GOOGLE_SHEET_ID
+    }
+  });
 });
 
 // Google Sheets logging

@@ -89,7 +89,7 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose, o
 
       // Log to Google Sheets via backend
       try {
-        await fetch('/api/log-submission', {
+        const logResponse = await fetch('/api/log-submission', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -98,8 +98,15 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose, o
             summary: summary
           })
         });
+        
+        if (!logResponse.ok) {
+          const errorData = await logResponse.json();
+          console.error("Google Sheets logging failed:", errorData.error);
+        } else {
+          console.log("Successfully logged to Google Sheets");
+        }
       } catch (logError) {
-        console.error("Silent logging failed:", logError);
+        console.error("Network error during logging:", logError);
       }
 
     } catch (error) {
