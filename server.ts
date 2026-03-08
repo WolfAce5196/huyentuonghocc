@@ -169,24 +169,9 @@ async function startServer() {
   if (process.env.NODE_ENV !== "production") {
     vite = await createViteServer({
       server: { middlewareMode: true },
-      appType: "custom",
+      appType: "spa",
     });
     app.use(vite.middlewares);
-    
-    app.get("*", async (req, res, next) => {
-      const url = req.originalUrl;
-      if (url.startsWith("/api/")) return next();
-      
-      try {
-        const templatePath = path.resolve(__dirname, "index.html");
-        let template = fs.readFileSync(templatePath, "utf-8");
-        template = await vite.transformIndexHtml(url, template);
-        res.status(200).set({ "Content-Type": "text/html" }).end(template);
-      } catch (e: any) {
-        if (vite) vite.ssrFixStacktrace(e);
-        next(e);
-      }
-    });
     console.log("[Server] Vite middleware loaded (Development)");
   } else {
     app.use(express.static(path.resolve(__dirname, "dist")));
