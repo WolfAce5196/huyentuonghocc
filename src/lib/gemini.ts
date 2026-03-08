@@ -9,6 +9,32 @@ export const MODELS = {
   IMAGE: "gemini-2.5-flash-image",
 };
 
+export async function generateMysticImage(prompt: string) {
+  try {
+    const response = await ai.models.generateContent({
+      model: MODELS.IMAGE,
+      contents: {
+        parts: [{ text: `A mystical, ethereal, and symbolic representation of: ${prompt}. Style: Sacred geometry, cosmic energy, spiritual art, high detail, cinematic lighting, deep purples and golds.` }]
+      },
+      config: {
+        imageConfig: {
+          aspectRatio: "16:9"
+        }
+      }
+    });
+
+    for (const part of response.candidates[0].content.parts) {
+      if (part.inlineData) {
+        return `data:image/png;base64,${part.inlineData.data}`;
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error("Image generation failed:", error);
+    return null;
+  }
+}
+
 export async function safeGenerateContent(params: any, maxRetries = 3) {
   let delay = 2000;
   for (let i = 0; i < maxRetries; i++) {
@@ -88,7 +114,7 @@ export const SYSTEM_PROMPTS = {
     "isValid": boolean,
     "errorMessage": "Thông báo nếu isValid là false",
     "analysis": {
-      "overview": "Tổng quan thần thái (Markdown)",
+      "overview": "Tổng quan thần thái (Markdown). BẮT BUỘC bao gồm một bảng (table) Markdown tóm tắt các chỉ số thần thái: \n| Chỉ số | Mức độ | Ý nghĩa |\n| :--- | :---: | :--- |\n| Thần khí | 8/10 | Vững vàng |\n| Sắc diện | 7/10 | Tươi nhuận |\n| Khí chất | 9/10 | Thanh cao |",
       "features": [
         { "part": "Tên bộ phận", "description": "Mô tả đặc điểm", "interpretation": "Luận giải" }
       ],
@@ -112,10 +138,16 @@ export const SYSTEM_PROMPTS = {
   4. BẮT BUỘC sử dụng bảng (table) chuẩn Markdown để tóm tắt thông điệp.
      | Lá bài | Vị trí | Ý nghĩa chính | Lời khuyên nhanh |
      | :--- | :---: | :--- | :--- |
-  5. Sử dụng **chữ đậm** cho các từ khóa quan trọng và khái niệm then chốt.
-  6. Sử dụng > blockquote cho thông điệp cốt lõi từ vũ trụ.
-  7. Sử dụng --- để phân tách các phần rõ ràng.
-  8. Sử dụng danh sách (bullet points) để liệt kê các hành động cụ thể.
+  5. BẮT BUỘC cung cấp một bảng "Biểu đồ Năng lượng" (Energy Chart) bằng Markdown:
+     | Yếu tố | Mức độ (1-10) | Trạng thái |
+     | :--- | :---: | :--- |
+     | Trực giác | 8/10 | Đang thức tỉnh |
+     | Hành động | 4/10 | Cần thận trọng |
+     | Cảm xúc | 9/10 | Rất mạnh mẽ |
+  6. Sử dụng **chữ đậm** cho các từ khóa quan trọng và khái niệm then chốt.
+  7. Sử dụng > blockquote cho thông điệp cốt lõi từ vũ trụ.
+  8. Sử dụng --- để phân tách các phần rõ ràng.
+  9. Sử dụng danh sách (bullet points) để liệt kê các hành động cụ thể.
 
   Cấu trúc phản hồi:
   ## 🃏 Các Lá Bài Đã Chọn
@@ -213,7 +245,7 @@ export const SYSTEM_PROMPTS = {
   BẮT BUỘC TRẢ VỀ KẾT QUẢ DƯỚI DẠNG JSON với cấu trúc sau:
   {
     "mainNumber": "Số chủ đạo (ví dụ: 7, 11, 22/4)",
-    "overview": "Bản luận giải CHI TIẾT, KHOA HỌC và TOÀN DIỆN nhất (Markdown). Phải bóc tách từng vấn đề rõ ràng theo cấu trúc: \n- ## 🌟 Tổng Quan Bản Mệnh (Phác họa chân dung tổng quát)\n- ## 🧩 Phân Tích Chỉ Số Lõi (Sự kết hợp giữa Số Chủ Đạo, Sứ Mệnh, Linh Hồn, Nhân Cách)\n- ## 🚀 Hành Trình Phát Triển (Các giai đoạn cuộc đời và bài học cần học)\n- ## 💡 Định Hướng Chiến Lược (Lời khuyên về sự nghiệp, tài chính và mối quan hệ)\nSử dụng Markdown (H2, H3, Bold, Lists) để tạo bố cục chuyên nghiệp.",
+    "overview": "Bản luận giải CHI TIẾT, KHOA HỌC và TOÀN DIỆN nhất (Markdown). Phải bóc tách từng vấn đề rõ ràng theo cấu trúc: \n- ## 🌟 Tổng Quan Bản Mệnh (Phác họa chân dung tổng quát)\n- ## 🧩 Phân Tích Chỉ Số Lõi (Sự kết hợp giữa Số Chủ Đạo, Sứ Mệnh, Linh Hồn, Nhân Cách)\n- ## 🚀 Hành Trình Phát Triển (Các giai đoạn cuộc đời và bài học cần học)\n- ## 💡 Định Hướng Chiến Lược (Lời khuyên về sự nghiệp, tài chính và mối quan hệ)\nSử dụng Markdown (H2, H3, Bold, Lists) để tạo bố cục chuyên nghiệp. BẮT BUỘC bao gồm một bảng (table) Markdown 'Bản Đồ Năng Lượng Linh Hồn' tóm tắt các chỉ số: \n| Chỉ số | Mức độ | Trạng thái |\n| :--- | :---: | :--- |\n| Trực giác | 8/10 | Đang thức tỉnh |\n| Hành động | 6/10 | Cần tập trung |\n| Cảm xúc | 9/10 | Rất mạnh mẽ |",
     "coreNumbers": [
       { "name": "Tên chỉ số (Số Chủ Đạo, Sứ Mệnh, Linh Hồn, Nhân Cách, Ngày Sinh, Thái Độ, Năm Cá Nhân)", "value": "Giá trị", "meaning": "Ý nghĩa tóm tắt" }
     ],

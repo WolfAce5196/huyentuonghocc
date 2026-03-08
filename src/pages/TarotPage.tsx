@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CreditCard, Sparkles, RefreshCw, Loader2, History as HistoryIcon, Download } from 'lucide-react';
-import { ai, MODELS, SYSTEM_PROMPTS, safeGenerateContentStream, getCurrentContext } from '../lib/gemini';
+import { ai, MODELS, SYSTEM_PROMPTS, safeGenerateContentStream, getCurrentContext, generateMysticImage } from '../lib/gemini';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { TAROT_CARDS_DATA, TarotCard } from '../constants/tarotData';
@@ -29,6 +29,7 @@ export const TarotPage: React.FC = () => {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
   const [preRenderedPDF, setPreRenderedPDF] = useState<string | null>(null);
+  const [aiImage, setAiImage] = useState<string | null>(pageState.aiImage || null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const contentRef = React.useRef<HTMLDivElement>(null);
 
@@ -46,6 +47,7 @@ export const TarotPage: React.FC = () => {
     }
     if (pageState.question !== undefined && pageState.question !== question) setQuestion(pageState.question);
     if (pageState.topic !== undefined && pageState.topic !== topic) setTopic(pageState.topic);
+    if (pageState.aiImage !== undefined && pageState.aiImage !== aiImage) setAiImage(pageState.aiImage);
   }, [pageState]);
 
   // Scroll to top of content when mode or topic changes
@@ -70,6 +72,15 @@ export const TarotPage: React.FC = () => {
             content: card.card.image_url,
             label: card.card.name_en
           }));
+          
+          if (aiImage) {
+            resources.push({
+              type: 'image' as const,
+              content: aiImage,
+              label: 'Hình ảnh linh hồn (AI)'
+            });
+          }
+
           const imgData = await preRenderPDFContent('Luận Giải Bài Tarot', interpretation, resources);
           setPreRenderedPDF(imgData);
         } catch (err) {
@@ -78,7 +89,7 @@ export const TarotPage: React.FC = () => {
       }, 1000); // Wait for animations to settle
       return () => clearTimeout(timer);
     }
-  }, [interpretation, selectedCards]);
+  }, [interpretation, selectedCards, aiImage]);
 
   const handleReset = () => {
     setIsRefreshing(true);
@@ -89,6 +100,7 @@ export const TarotPage: React.FC = () => {
       setRevealedIndices([]);
       setQuestion('');
       setTopic('Tổng quan');
+      setAiImage(null);
       resetState('tarot');
       setIsRefreshing(false);
     }, 600);
@@ -108,6 +120,7 @@ export const TarotPage: React.FC = () => {
     setSelectedCards(drawn);
     setRevealedIndices([]);
     setInterpretation(null);
+    setAiImage(null);
     setError(null);
     
     updateState('tarot', { 
@@ -115,6 +128,7 @@ export const TarotPage: React.FC = () => {
       selectedCards: drawn, 
       revealedIndices: [], 
       result: null, 
+      aiImage: null,
       error: null 
     });
   };
@@ -157,6 +171,18 @@ export const TarotPage: React.FC = () => {
         fullText += chunk;
         setInterpretation(fullText);
       }
+
+      // Generate AI Image based on the interpretation
+      try {
+        const imagePrompt = `Tarot reading summary: ${fullText.substring(0, 300)}. Question: ${question}. Topic: ${topic}.`;
+        const generatedImg = await generateMysticImage(imagePrompt);
+        if (generatedImg) {
+          setAiImage(generatedImg);
+          updateState('tarot', { aiImage: generatedImg });
+        }
+      } catch (imgErr) {
+        console.error("AI Image generation failed:", imgErr);
+      }
       
       // Save to history
       saveHistory({
@@ -187,11 +213,13 @@ export const TarotPage: React.FC = () => {
     const t = item.result.topic || 'Tổng quan';
     const m = item.result.mode;
     const interp = item.result.interpretation;
+    const aiImg = item.result.aiImage || null;
     
     setQuestion(q);
     setTopic(t);
     setMode(m);
     setInterpretation(interp);
+    setAiImage(aiImg);
     
     // Find cards from data
     const restoredCards = item.result.cards.map((c: any) => ({
@@ -219,7 +247,13 @@ export const TarotPage: React.FC = () => {
         name: c.card.name_en,
         image: c.card.image_url
       }));
-      downloadTarotPDF(userData, interpretation, cards, preRenderedPDF || undefined);
+      downloadTarotPDF(
+        userData, 
+        interpretation, 
+        cards, 
+        aiImage || undefined,
+        preRenderedPDF || undefined
+      );
     } else {
       downloadAsFile(interpretation, 'tarot.txt', userData);
     }
@@ -387,6 +421,27 @@ export const TarotPage: React.FC = () => {
                   </div>
                   <h2 className="text-2xl md:text-3xl font-serif font-bold text-mystic-gold">Luận Giải Chi Tiết</h2>
                 </div>
+
+                {aiImage && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="mb-10 relative group"
+                  >
+                    <div className="absolute -inset-1 bg-gradient-to-r from-mystic-purple/20 to-mystic-gold/20 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                    <div className="relative bg-black/40 rounded-2xl overflow-hidden border border-white/10">
+                      <img 
+                        src={aiImage} 
+                        alt="Mystic AI Representation" 
+                        className="w-full h-auto object-cover max-h-[400px]"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+                        <p className="text-mystic-gold text-[10px] uppercase tracking-widest font-bold">Hình ảnh linh hồn - Được tạo bởi AI</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
                 
                 <div className="markdown-body">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{interpretation}</ReactMarkdown>
@@ -438,6 +493,7 @@ export const TarotPage: React.FC = () => {
         onDownload={handleDownload}
         title="Bói Bài Tarot"
         interpretation={interpretation || ''}
+        preRenderedPDF={preRenderedPDF}
       />
     </div>
   );

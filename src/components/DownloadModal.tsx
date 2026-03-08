@@ -7,9 +7,10 @@ import { toast } from 'react-hot-toast';
 interface DownloadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onDownload: (userData: UserData, format: 'txt' | 'pdf') => void;
+  onDownload: (userData: UserData, format: 'txt' | 'pdf', preRenderedPDF?: string) => void;
   title: string;
   interpretation: string;
+  preRenderedPDF?: string | null;
 }
 
 export interface UserData {
@@ -20,7 +21,7 @@ export interface UserData {
 
 const STORAGE_KEY = 'mystic_user_suggestions';
 
-export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose, onDownload, title, interpretation }) => {
+export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose, onDownload, title, interpretation, preRenderedPDF }) => {
   const [formData, setFormData] = useState<UserData>({
     fullName: '',
     phone: '',
@@ -116,7 +117,7 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose, o
       saveToSuggestions(formData);
       
       // Always trigger download immediately
-      onDownload(formData, downloadFormat);
+      onDownload(formData, downloadFormat, preRenderedPDF || undefined);
       onClose();
     }
   };

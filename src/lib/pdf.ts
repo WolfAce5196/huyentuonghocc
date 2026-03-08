@@ -9,43 +9,97 @@ interface PDFResource {
 }
 
 const formatMainContent = (mainContent: string) => {
-  return mainContent
-    .split('\n')
-    .map(line => {
-      const trimmedLine = line.trim();
-      if (trimmedLine.startsWith('# ')) {
-        return `<h2 style="color: #facc15; font-size: 28px; margin-top: 40px; margin-bottom: 20px; border-left: 5px solid #facc15; padding-left: 15px; text-transform: uppercase;">${trimmedLine.substring(2)}</h2>`;
-      }
-      if (trimmedLine.startsWith('## ')) {
-        return `<h3 style="color: #facc15; font-size: 22px; margin-top: 30px; margin-bottom: 15px; border-bottom: 1px solid rgba(250, 204, 21, 0.3); padding-bottom: 8px;">${trimmedLine.substring(3)}</h3>`;
-      }
-      if (trimmedLine.startsWith('### ')) {
-        return `<h4 style="color: #facc15; font-size: 19px; margin-top: 25px; margin-bottom: 12px;">${trimmedLine.substring(4)}</h4>`;
-      }
-      if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
-        return `<div style="margin-left: 20px; margin-bottom: 10px; display: flex; align-items: flex-start;">
-                  <span style="color: #facc15; margin-right: 10px;">✦</span>
-                  <span>${trimmedLine.substring(2)}</span>
-                </div>`;
-      }
-      if (trimmedLine.match(/^\d+\./)) {
-        return `<div style="margin-left: 20px; margin-bottom: 10px; display: flex; align-items: flex-start;">
-                  <span style="color: #facc15; margin-right: 10px; font-weight: bold;">${trimmedLine.split('.')[0]}.</span>
-                  <span>${trimmedLine.substring(trimmedLine.indexOf('.') + 1).trim()}</span>
-                </div>`;
-      }
-      if (trimmedLine === '') {
-        return '<div style="height: 15px;"></div>';
+  const lines = mainContent.split('\n');
+  let html = '';
+  let inTable = false;
+  let tableRows: string[][] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const trimmedLine = lines[i].trim();
+
+    // Table detection
+    if (trimmedLine.startsWith('|') && trimmedLine.endsWith('|')) {
+      if (!inTable) {
+        inTable = true;
+        tableRows = [];
       }
       
+      // Skip separator rows like |:---|:---:|
+      if (trimmedLine.includes('---')) continue;
+
+      const cells = trimmedLine
+        .split('|')
+        .map(cell => cell.trim())
+        .filter((cell, index, array) => {
+          // If the line starts with |, the first element will be empty
+          if (index === 0 && trimmedLine.startsWith('|') && cell === '') return false;
+          // If the line ends with |, the last element will be empty
+          if (index === array.length - 1 && trimmedLine.endsWith('|') && cell === '') return false;
+          return true;
+        });
+      
+      if (cells.length > 0) {
+        tableRows.push(cells);
+      }
+      continue;
+    } else if (inTable) {
+      // End of table
+      html += renderTableHtml(tableRows);
+      inTable = false;
+      tableRows = [];
+    }
+
+    if (trimmedLine.startsWith('# ')) {
+      html += `<h2 style="color: #facc15; font-size: 28px; margin-top: 40px; margin-bottom: 20px; border-left: 5px solid #facc15; padding-left: 15px; text-transform: uppercase;">${trimmedLine.substring(2)}</h2>`;
+    } else if (trimmedLine.startsWith('## ')) {
+      html += `<h3 style="color: #facc15; font-size: 22px; margin-top: 30px; margin-bottom: 15px; border-bottom: 1px solid rgba(250, 204, 21, 0.3); padding-bottom: 8px;">${trimmedLine.substring(3)}</h3>`;
+    } else if (trimmedLine.startsWith('### ')) {
+      html += `<h4 style="color: #facc15; font-size: 19px; margin-top: 25px; margin-bottom: 12px;">${trimmedLine.substring(4)}</h4>`;
+    } else if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
+      html += `<div style="margin-left: 20px; margin-bottom: 10px; display: flex; align-items: flex-start;">
+                <span style="color: #facc15; margin-right: 10px;">✦</span>
+                <span>${trimmedLine.substring(2)}</span>
+              </div>`;
+    } else if (trimmedLine.match(/^\d+\./)) {
+      html += `<div style="margin-left: 20px; margin-bottom: 10px; display: flex; align-items: flex-start;">
+                <span style="color: #facc15; margin-right: 10px; font-weight: bold;">${trimmedLine.split('.')[0]}.</span>
+                <span>${trimmedLine.substring(trimmedLine.indexOf('.') + 1).trim()}</span>
+              </div>`;
+    } else if (trimmedLine === '') {
+      html += '<div style="height: 15px;"></div>';
+    } else {
       // Handle bold
       let processedLine = trimmedLine.replace(/\*\*(.*?)\*\*/g, '<strong style="color: #facc15;">$1</strong>');
       // Handle italic
       processedLine = processedLine.replace(/\*(.*?)\*/g, '<em style="color: #d1d5db;">$1</em>');
-      
-      return `<p style="margin-bottom: 15px; text-indent: 0;">${processedLine}</p>`;
-    })
-    .join('');
+      html += `<p style="margin-bottom: 15px; text-indent: 0;">${processedLine}</p>`;
+    }
+  }
+
+  // If file ends with a table
+  if (inTable) {
+    html += renderTableHtml(tableRows);
+  }
+
+  return html;
+};
+
+const renderTableHtml = (rows: string[][]) => {
+  if (rows.length === 0) return '';
+  
+  let tableHtml = '<table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; border: 1px solid rgba(250, 204, 21, 0.2); font-size: 14px;">';
+  
+  rows.forEach((row, rowIndex) => {
+    tableHtml += `<tr style="${rowIndex === 0 ? 'background-color: rgba(250, 204, 21, 0.1);' : ''}">`;
+    row.forEach(cell => {
+      const cellStyle = `padding: 12px; border: 1px solid rgba(250, 204, 21, 0.2); ${rowIndex === 0 ? 'color: #facc15; font-weight: bold; text-transform: uppercase;' : 'color: #e5e7eb;'}`;
+      tableHtml += `<${rowIndex === 0 ? 'th' : 'td'} style="${cellStyle}">${cell}</${rowIndex === 0 ? 'th' : 'td'}>`;
+    });
+    tableHtml += '</tr>';
+  });
+  
+  tableHtml += '</table>';
+  return tableHtml;
 };
 
 const createResourcesHtml = (resources: PDFResource[]) => {
@@ -205,23 +259,33 @@ export const downloadPDF = async (
 };
 
 // Specialized functions for each section
-export const downloadTarotPDF = (userData: UserData, result: string, cards: { name: string, image: string }[], preRenderedContent?: string) => {
+export const downloadTarotPDF = (userData: UserData, result: string, cards: { name: string, image: string }[], aiImage?: string, preRenderedContent?: string) => {
   const resources: PDFResource[] = cards.map(card => ({
     type: 'image',
     content: card.image,
     label: card.name
   }));
+  if (aiImage) {
+    resources.push({ type: 'image', content: aiImage, label: 'Hình ảnh linh hồn (AI)' });
+  }
   return downloadPDF('Luận Giải Bài Tarot', 'tarot-luan-giai.pdf', userData, result, resources, preRenderedContent);
 };
 
-export const downloadNumerologyPDF = (userData: UserData, result: string, preRenderedContent?: string) => {
-  return downloadPDF('Luận Giải Thần Số Học', 'than-so-hoc.pdf', userData, result, [], preRenderedContent);
+export const downloadNumerologyPDF = (userData: UserData, result: string, aiImage?: string, preRenderedContent?: string) => {
+  const resources: PDFResource[] = [];
+  if (aiImage) {
+    resources.push({ type: 'image', content: aiImage, label: 'Bản đồ linh hồn (AI)' });
+  }
+  return downloadPDF('Luận Giải Thần Số Học', 'than-so-hoc.pdf', userData, result, resources, preRenderedContent);
 };
 
-export const downloadPhysiognomyPDF = (userData: UserData, result: string, userImage: string, preRenderedContent?: string) => {
+export const downloadPhysiognomyPDF = (userData: UserData, result: string, userImage: string, aiImage?: string, preRenderedContent?: string) => {
   const resources: PDFResource[] = [
     { type: 'image', content: userImage, label: 'Hình ảnh phân tích' }
   ];
+  if (aiImage) {
+    resources.push({ type: 'image', content: aiImage, label: 'Hình ảnh linh hồn (AI)' });
+  }
   return downloadPDF('Luận Giải Nhân Tướng Học', 'nhan-tuong-hoc.pdf', userData, result, resources, preRenderedContent);
 };
 
@@ -235,7 +299,7 @@ export const downloadIChingPDF = (userData: UserData, result: string, hexImage: 
   return downloadPDF('Luận Giải Gieo Quẻ Kinh Dịch', 'kinh-dich.pdf', userData, result, resources, preRenderedContent);
 };
 
-export const downloadDivinationPDF = (userData: UserData, result: string, coins?: string[], preRenderedContent?: string) => {
+export const downloadDivinationPDF = (userData: UserData, result: string, coins?: string[], aiImage?: string, preRenderedContent?: string) => {
   const resources: PDFResource[] = [];
   if (coins && coins.length > 0) {
     coins.forEach((side, i) => {
@@ -247,6 +311,9 @@ export const downloadDivinationPDF = (userData: UserData, result: string, coins?
         label: `Đồng xu ${i + 1}: ${side === 'head' ? 'Ngửa' : 'Sấp'}`
       });
     });
+  }
+  if (aiImage) {
+    resources.push({ type: 'image', content: aiImage, label: 'Hình ảnh linh hồn (AI)' });
   }
   return downloadPDF('Luận Giải Gieo Quẻ Âm Dương', 'gieo-que.pdf', userData, result, resources, preRenderedContent);
 };

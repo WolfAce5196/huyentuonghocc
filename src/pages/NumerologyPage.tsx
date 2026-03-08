@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Loader2, Save, Share2, History as HistoryIcon, Calculator, User, Calendar, Info, TrendingUp, Pyramid, Layout, Moon, Sun, Star, Download, RefreshCw } from 'lucide-react';
-import { MODELS, SYSTEM_PROMPTS, safeGenerateContent, getCurrentContext } from '../lib/gemini';
+import { MODELS, SYSTEM_PROMPTS, safeGenerateContent, getCurrentContext, generateMysticImage } from '../lib/gemini';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { HistorySidebar } from '../components/HistorySidebar';
@@ -36,6 +36,7 @@ export const NumerologyPage: React.FC = () => {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
   const [preRenderedPDF, setPreRenderedPDF] = useState<string | null>(null);
+  const [aiImage, setAiImage] = useState<string | null>(pageState.aiImage || null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'core' | 'cycle' | 'pyramids'>(pageState.activeTab || 'overview');
   const [isMobile, setIsMobile] = useState(false);
@@ -49,6 +50,7 @@ export const NumerologyPage: React.FC = () => {
     if (pageState.name !== undefined && pageState.name !== name) setName(pageState.name);
     if (pageState.birthDate !== undefined && pageState.birthDate !== birthDate) setBirthDate(pageState.birthDate);
     if (pageState.activeTab !== undefined && pageState.activeTab !== activeTab) setActiveTab(pageState.activeTab);
+    if (pageState.aiImage !== undefined && pageState.aiImage !== aiImage) setAiImage(pageState.aiImage);
   }, [pageState]);
 
   useEffect(() => {
@@ -80,7 +82,15 @@ ${result.weaknesses.map(w => `- ${w}`).join('\n')}
 LỜI KHUYÊN:
 ${result.advice.map(a => `- ${a}`).join('\n')}
 `;
-          const imgData = await preRenderPDFContent('Luận Giải Thần Số Học', content);
+          const resources = [];
+          if (aiImage) {
+            resources.push({
+              type: 'image' as const,
+              content: aiImage,
+              label: 'Bản đồ linh hồn (AI)'
+            });
+          }
+          const imgData = await preRenderPDFContent('Luận Giải Thần Số Học', content, resources);
           setPreRenderedPDF(imgData);
         } catch (err) {
           console.error("Pre-render failed:", err);
@@ -88,7 +98,7 @@ ${result.advice.map(a => `- ${a}`).join('\n')}
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [result, preRenderedPDF]);
+  }, [result, preRenderedPDF, aiImage]);
 
   const handleReset = () => {
     setIsRefreshing(true);
@@ -97,6 +107,7 @@ ${result.advice.map(a => `- ${a}`).join('\n')}
       setBirthDate('');
       setResult(null);
       setActiveTab('overview');
+      setAiImage(null);
       resetState('numerology');
       setIsRefreshing(false);
     }, 600);
@@ -130,13 +141,27 @@ ${result.advice.map(a => `- ${a}`).join('\n')}
         if (!parsedResult || !parsedResult.mainNumber) {
           throw new Error("Invalid structure");
         }
+
+        // Generate AI Image
+        try {
+          const imagePrompt = `Numerology reading for ${name}. Life Path Number: ${parsedResult.mainNumber}. Strengths: ${parsedResult.strengths.join(', ')}.`;
+          const generatedImg = await generateMysticImage(imagePrompt);
+          if (generatedImg) {
+            setAiImage(generatedImg);
+            updateState('numerology', { aiImage: generatedImg });
+          }
+        } catch (imgErr) {
+          console.error("AI Image generation failed:", imgErr);
+        }
+
         saveHistory({
           type: 'numerology',
           title: `Thần Số Học: ${name} (${birthDate})`,
           result: {
             name,
             birthDate,
-            interpretation: parsedResult
+            interpretation: parsedResult,
+            aiImage: aiImage // This might be null if not generated yet, but history is saved after
           }
         });
 
@@ -159,12 +184,14 @@ ${result.advice.map(a => `- ${a}`).join('\n')}
     setName(item.result.name);
     setBirthDate(item.result.birthDate);
     setResult(item.result.interpretation);
+    setAiImage(item.result.aiImage || null);
     setActiveTab('overview');
     
     updateState('numerology', {
       name: item.result.name,
       birthDate: item.result.birthDate,
       result: item.result.interpretation,
+      aiImage: item.result.aiImage || null,
       activeTab: 'overview'
     });
   };
@@ -196,7 +223,7 @@ ${res.advice.map((a: any) => `- ${a}`).join('\n')}
     if (!result) return;
     if (format === 'pdf') {
       const content = getNumerologyMarkdown(result);
-      downloadNumerologyPDF(userData, content, preRenderedPDF || undefined);
+      downloadNumerologyPDF(userData, content, aiImage || undefined, preRenderedPDF || undefined);
     } else {
       const content = `
 SỐ CHỦ ĐẠO: ${result.mainNumber}
@@ -536,6 +563,26 @@ ${result.advice.map(a => `- ${a}`).join('\n')}
                         <div className="absolute bottom-0 left-0 w-64 h-64 bg-mystic-gold/5 blur-[100px] rounded-full -ml-32 -mb-32" />
                         
                         <div className="relative z-10 markdown-body prose prose-invert max-w-none prose-p:text-gray-300 prose-p:leading-relaxed prose-p:text-base md:prose-p:text-lg">
+                          {aiImage && (
+                            <motion.div 
+                              initial={{ opacity: 0, scale: 0.95 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              className="mb-8 relative group"
+                            >
+                              <div className="absolute -inset-1 bg-gradient-to-r from-mystic-purple/20 to-mystic-gold/20 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                              <div className="relative bg-black/40 rounded-2xl overflow-hidden border border-white/10">
+                                <img 
+                                  src={aiImage} 
+                                  alt="Numerology Soul Map" 
+                                  className="w-full h-auto object-cover max-h-[400px]"
+                                  referrerPolicy="no-referrer"
+                                />
+                                <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+                                  <p className="text-mystic-gold text-[10px] uppercase tracking-widest font-bold">Bản đồ linh hồn - Được họa bởi AI</p>
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
                           <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.overview}</ReactMarkdown>
                         </div>
                       </div>
@@ -1126,6 +1173,7 @@ ${result.advice.map(a => `- ${a}`).join('\n')}
         onDownload={handleDownload}
         title="Thần Số Học"
         interpretation={getNumerologyMarkdown(result)}
+        preRenderedPDF={preRenderedPDF}
       />
     </div>
   );

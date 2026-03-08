@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Coins, Sparkles, RefreshCw, Loader2, History as HistoryIcon, Download } from 'lucide-react';
-import { ai, MODELS, SYSTEM_PROMPTS, safeGenerateContent, safeGenerateContentStream, getCurrentContext } from '../lib/gemini';
+import { ai, MODELS, SYSTEM_PROMPTS, safeGenerateContent, safeGenerateContentStream, getCurrentContext, generateMysticImage } from '../lib/gemini';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import confetti from 'canvas-confetti';
@@ -26,6 +26,7 @@ export const DivinationPage: React.FC = () => {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
   const [preRenderedPDF, setPreRenderedPDF] = useState<string | null>(null);
+  const [aiImage, setAiImage] = useState<string | null>(pageState.aiImage || null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const contentRef = React.useRef<HTMLDivElement>(null);
 
@@ -38,6 +39,7 @@ export const DivinationPage: React.FC = () => {
     if (pageState.question !== undefined && pageState.question !== question) setQuestion(pageState.question);
     if (pageState.tossCount !== undefined && pageState.tossCount !== tossCount) setTossCount(pageState.tossCount);
     if (pageState.resultType !== undefined && pageState.resultType !== resultType) setResultType(pageState.resultType);
+    if (pageState.aiImage !== undefined && pageState.aiImage !== aiImage) setAiImage(pageState.aiImage);
   }, [pageState]);
 
   useEffect(() => {
@@ -57,6 +59,15 @@ export const DivinationPage: React.FC = () => {
               : "https://img.icons8.com/fluency/240/full-moon.png",
             label: `Đồng xu ${i + 1}: ${side === 'head' ? 'Ngửa' : 'Sấp'}`
           }));
+          
+          if (aiImage) {
+            resources.push({
+              type: 'image' as const,
+              content: aiImage,
+              label: 'Hình ảnh linh hồn (AI)'
+            });
+          }
+
           const imgData = await preRenderPDFContent('Luận Giải Gieo Quẻ Âm Dương', result, resources);
           setPreRenderedPDF(imgData);
         } catch (err) {
@@ -65,7 +76,7 @@ export const DivinationPage: React.FC = () => {
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [result, coins, preRenderedPDF]);
+  }, [result, coins, preRenderedPDF, aiImage]);
 
   const handleReset = () => {
     setIsRefreshing(true);
@@ -75,6 +86,7 @@ export const DivinationPage: React.FC = () => {
       setQuestion('');
       setTossCount(0);
       setResultType(null);
+      setAiImage(null);
       setError(null);
       resetState('divination');
       setIsRefreshing(false);
@@ -142,6 +154,18 @@ export const DivinationPage: React.FC = () => {
         fullText += chunk;
         setResult(fullText);
       }
+
+      // Generate AI Image
+      try {
+        const imagePrompt = `Divination result: ${typeName}. Question: ${question}. Result summary: ${fullText.substring(0, 200)}.`;
+        const generatedImg = await generateMysticImage(imagePrompt);
+        if (generatedImg) {
+          setAiImage(generatedImg);
+          updateState('divination', { aiImage: generatedImg });
+        }
+      } catch (imgErr) {
+        console.error("AI Image generation failed:", imgErr);
+      }
       
       // Save to history
       saveHistory({
@@ -178,12 +202,13 @@ export const DivinationPage: React.FC = () => {
     setCoins(item.result.coins);
     setResultType(item.result.resultType);
     setResult(item.result.interpretation);
+    setAiImage(item.result.aiImage || null);
   };
 
   const handleDownload = (userData: UserData, format: 'txt' | 'pdf') => {
     if (!result) return;
     if (format === 'pdf') {
-      downloadDivinationPDF(userData, result, coins, preRenderedPDF || undefined);
+      downloadDivinationPDF(userData, result, coins, aiImage || undefined, preRenderedPDF || undefined);
     } else {
       downloadAsFile(result, 'gieo-dai-am-duong.txt', userData);
     }
@@ -338,6 +363,28 @@ export const DivinationPage: React.FC = () => {
                 <Sparkles className="w-6 h-6 text-mystic-gold" />
                 <h2 className="text-2xl font-serif font-bold text-mystic-gold">Lời Giải Đài</h2>
               </div>
+
+              {aiImage && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="mb-10 relative group"
+                >
+                  <div className="absolute -inset-1 bg-gradient-to-r from-mystic-purple/20 to-mystic-gold/20 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                  <div className="relative bg-black/40 rounded-2xl overflow-hidden border border-white/10">
+                    <img 
+                      src={aiImage} 
+                      alt="Divination AI Representation" 
+                      className="w-full h-auto object-cover max-h-[400px]"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+                      <p className="text-mystic-gold text-[10px] uppercase tracking-widest font-bold">Hình ảnh linh hồn - Được tạo bởi AI</p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+              
               <div className="markdown-body">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{result}</ReactMarkdown>
               </div>
@@ -381,6 +428,7 @@ export const DivinationPage: React.FC = () => {
         onDownload={handleDownload}
         title="Gieo Đài Âm Dương"
         interpretation={result || ''}
+        preRenderedPDF={preRenderedPDF}
       />
     </div>
   );

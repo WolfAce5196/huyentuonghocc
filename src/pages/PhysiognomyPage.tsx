@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, Camera, Sparkles, Loader2, Save, Share2, User, RefreshCw, History as HistoryIcon, Download } from 'lucide-react';
-import { ai, MODELS, SYSTEM_PROMPTS, safeGenerateContent, getCurrentContext } from '../lib/gemini';
+import { ai, MODELS, SYSTEM_PROMPTS, safeGenerateContent, getCurrentContext, generateMysticImage } from '../lib/gemini';
 import { cn, extractJSON } from '../lib/utils';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -38,6 +38,7 @@ export const PhysiognomyPage: React.FC = () => {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
   const [preRenderedPDF, setPreRenderedPDF] = useState<string | null>(null);
+  const [aiImage, setAiImage] = useState<string | null>(pageState.aiImage || null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -48,7 +49,8 @@ export const PhysiognomyPage: React.FC = () => {
     if (pageState.result !== undefined && pageState.result !== result) setResult(pageState.result);
     if (pageState.error !== undefined && pageState.error !== error) setError(pageState.error);
     if (pageState.image !== undefined && pageState.image !== image) setImage(pageState.image);
-  }, [pageState.loading, pageState.result, pageState.error, pageState.image, loading, result, error, image]);
+    if (pageState.aiImage !== undefined && pageState.aiImage !== aiImage) setAiImage(pageState.aiImage);
+  }, [pageState.loading, pageState.result, pageState.error, pageState.image, pageState.aiImage, loading, result, error, image, aiImage]);
 
   useEffect(() => {
     if (result) {
@@ -79,6 +81,7 @@ export const PhysiognomyPage: React.FC = () => {
     setTimeout(() => {
       setImage(null);
       setResult(null);
+      setAiImage(null);
       setError(null);
       resetState('physiognomy');
       setIsRefreshing(false);
@@ -146,6 +149,18 @@ export const PhysiognomyPage: React.FC = () => {
         finishLoading('physiognomy', {}, resultData.errorMessage || "Ảnh không đạt tiêu chuẩn. Vui lòng chụp rõ mặt chính diện.");
         return;
       }
+
+      // Generate AI Image
+      try {
+        const imagePrompt = `Physiognomy analysis summary: ${resultData.analysis?.overview.substring(0, 200)}. Personality: ${resultData.analysis?.personality.substring(0, 100)}.`;
+        const generatedImg = await generateMysticImage(imagePrompt);
+        if (generatedImg) {
+          setAiImage(generatedImg);
+          updateState('physiognomy', { aiImage: generatedImg });
+        }
+      } catch (imgErr) {
+        console.error("AI Image generation failed:", imgErr);
+      }
       
       // Save to history
       saveHistory({
@@ -153,6 +168,7 @@ export const PhysiognomyPage: React.FC = () => {
         title: `Xem Nhân Tướng (${new Date().toLocaleDateString('vi-VN')})`,
         result: {
           image,
+          aiImage: aiImage,
           interpretation: resultData
         }
       });
@@ -170,6 +186,7 @@ export const PhysiognomyPage: React.FC = () => {
 
   const handleSelectHistory = (item: HistoryItem) => {
     setImage(item.result.image);
+    setAiImage(item.result.aiImage || null);
     setResult(item.result.interpretation);
   };
 
@@ -209,7 +226,7 @@ ${analysis.advice}
     if (!result || !image) return;
     if (format === 'pdf') {
       const markdown = getAnalysisMarkdown(result.analysis);
-      downloadPhysiognomyPDF(userData, markdown, image, preRenderedPDF || undefined);
+      downloadPhysiognomyPDF(userData, markdown, image, aiImage || undefined, preRenderedPDF || undefined);
     } else {
       const content = JSON.stringify(result, null, 2);
       downloadAsFile(content, 'nhan-tuong-hoc.json', userData);
@@ -416,6 +433,27 @@ ${analysis.advice}
                 </div>
                 
                 <div className="space-y-8">
+                  {aiImage && (
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="mb-10 relative group"
+                    >
+                      <div className="absolute -inset-1 bg-gradient-to-r from-mystic-purple/20 to-mystic-gold/20 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                      <div className="relative bg-black/40 rounded-2xl overflow-hidden border border-white/10">
+                        <img 
+                          src={aiImage} 
+                          alt="Physiognomy AI Representation" 
+                          className="w-full h-auto object-cover max-h-[400px]"
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+                          <p className="text-mystic-gold text-[10px] uppercase tracking-widest font-bold">Hình ảnh linh hồn - Được tạo bởi AI</p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
                   <section>
                     <div className="markdown-body">
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.analysis.overview}</ReactMarkdown>
@@ -491,6 +529,7 @@ ${analysis.advice}
         onDownload={handleDownload}
         title="Nhân Tướng Học"
         interpretation={result?.analysis ? getAnalysisMarkdown(result.analysis) : ''}
+        preRenderedPDF={preRenderedPDF}
       />
     </div>
   );

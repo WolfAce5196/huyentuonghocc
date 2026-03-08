@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Hash, Sparkles, RefreshCw, Loader2, History as HistoryIcon, Download } from 'lucide-react';
-import { ai, MODELS, SYSTEM_PROMPTS, safeGenerateContent, safeGenerateContentStream, getCurrentContext } from '../lib/gemini';
+import { ai, MODELS, SYSTEM_PROMPTS, safeGenerateContent, safeGenerateContentStream, getCurrentContext, generateMysticImage } from '../lib/gemini';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { HistorySidebar } from '../components/HistorySidebar';
@@ -193,26 +193,11 @@ export const IChingPage: React.FC = () => {
   const generateIllustration = async (num: number, name: string) => {
     setImageLoading(true);
     try {
-      const imagePrompt = `A mystical and artistic illustration representing the I Ching Hexagram ${num}: ${name}. 
-      The image should capture the essence of this hexagram's symbolism, specifically reflecting the energy related to the question: "${question}". 
-      Style: Traditional Chinese ink wash painting mixed with modern ethereal digital art, golden accents, Zen atmosphere, cinematic lighting, high detail.`;
-      
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
-        contents: {
-          parts: [{ text: imagePrompt }],
-        },
-      });
-
-      if (response.candidates && response.candidates[0]?.content?.parts) {
-        for (const part of response.candidates[0].content.parts) {
-          if (part.inlineData) {
-            const imageUrl = `data:image/png;base64,${part.inlineData.data}`;
-            setGeneratedImageUrl(imageUrl);
-            updateState('iching', { generatedImageUrl: imageUrl });
-            break;
-          }
-        }
+      const imagePrompt = `I Ching Hexagram ${num}: ${name}. Symbolism: ${name}. Question: ${question}.`;
+      const imageUrl = await generateMysticImage(imagePrompt);
+      if (imageUrl) {
+        setGeneratedImageUrl(imageUrl);
+        updateState('iching', { generatedImageUrl: imageUrl });
       }
     } catch (err) {
       console.error("Failed to generate image:", err);
@@ -497,6 +482,7 @@ export const IChingPage: React.FC = () => {
         onDownload={handleDownload}
         title="Gieo Quẻ Kinh Dịch"
         interpretation={result || ''}
+        preRenderedPDF={preRenderedPDF}
       />
     </div>
   );
