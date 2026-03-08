@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Coins, Sparkles, RefreshCw, Loader2, History as HistoryIcon, Download } from 'lucide-react';
-import { ai, MODELS, SYSTEM_PROMPTS, safeGenerateContent, getCurrentContext } from '../lib/gemini';
+import { ai, MODELS, SYSTEM_PROMPTS, safeGenerateContent, safeGenerateContentStream, getCurrentContext } from '../lib/gemini';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import confetti from 'canvas-confetti';
@@ -128,11 +128,17 @@ export const DivinationPage: React.FC = () => {
       Lần gieo thứ: ${newTossCount}/3
       Hãy giải nghĩa chi tiết kết quả này theo phong tục dân gian Việt Nam, dựa sát vào nội dung câu hỏi để đưa ra lời khuyên thực tế nhất.`;
 
-      const response = await safeGenerateContent({
+      const stream = safeGenerateContentStream({
         model: MODELS.TEXT,
         contents: [{ parts: [{ text: SYSTEM_PROMPTS.DIVINATION + "\n\n" + getCurrentContext() }, { text: prompt }] }],
       });
-      const resultText = response.text || "Không thể giải đài.";
+
+      let fullText = '';
+      setResult(''); // Clear previous result
+      for await (const chunk of stream) {
+        fullText += chunk;
+        setResult(fullText);
+      }
       
       // Save to history
       saveHistory({
@@ -143,12 +149,12 @@ export const DivinationPage: React.FC = () => {
           tossCount: newTossCount,
           coins: newCoins,
           resultType: typeName,
-          interpretation: resultText
+          interpretation: fullText
         }
       });
 
       finishLoading('divination', { 
-        result: resultText,
+        result: fullText,
         coins: newCoins,
         tossCount: newTossCount,
         resultType: typeName

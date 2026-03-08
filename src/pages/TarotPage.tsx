@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CreditCard, Sparkles, RefreshCw, Loader2, History as HistoryIcon, Download } from 'lucide-react';
-import { ai, MODELS, SYSTEM_PROMPTS, safeGenerateContent, getCurrentContext } from '../lib/gemini';
+import { ai, MODELS, SYSTEM_PROMPTS, safeGenerateContentStream, getCurrentContext } from '../lib/gemini';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { TAROT_CARDS_DATA, TarotCard } from '../constants/tarotData';
@@ -133,6 +133,7 @@ export const TarotPage: React.FC = () => {
 
   const analyzeReading = async () => {
     startLoading('tarot');
+    setInterpretation(''); // Clear previous interpretation
     try {
       const cardDetails = selectedCards.map((c, idx) => {
         const position = mode === 'triple' 
@@ -143,11 +144,16 @@ export const TarotPage: React.FC = () => {
 
       const prompt = `Tôi vừa rút được các lá bài Tarot sau:\n${cardDetails}\n\nChế độ xem: ${mode === 'single' ? 'Lời khuyên/Thông điệp' : 'Trải bài 3 lá (Quá khứ - Hiện tại - Tương lai)'}.\n\nBối cảnh quan trọng:\n- Câu hỏi cụ thể: "${question}"\n- Lĩnh vực: ${topic}\n\nYêu cầu luận giải:\n1. Hãy giải mã ý nghĩa của từng lá bài dựa TRỰC TIẾP và SÁT NGHĨA nhất với câu hỏi và lĩnh vực đã chọn.\n2. Đưa ra lời khuyên thực tế, cụ thể cho vấn đề này.\n3. Giữ phong cách huyền bí nhưng phải rõ ràng, không chung chung.`;
 
-      const response = await safeGenerateContent({
+      const stream = safeGenerateContentStream({
         model: MODELS.TEXT,
         contents: [{ parts: [{ text: SYSTEM_PROMPTS.TAROT + "\n\n" + getCurrentContext() }, { text: prompt }] }],
       });
-      const resultText = response.text || "Không thể giải mã.";
+
+      let fullText = '';
+      for await (const chunk of stream) {
+        fullText += chunk;
+        setInterpretation(fullText);
+      }
       
       // Save to history
       saveHistory({
@@ -157,12 +163,12 @@ export const TarotPage: React.FC = () => {
           mode,
           topic,
           question,
-          interpretation: resultText,
+          interpretation: fullText,
           cards: selectedCards.map(c => ({ name: c.card.name_en, isReversed: c.isReversed }))
         }
       });
 
-      finishLoading('tarot', { result: resultText });
+      finishLoading('tarot', { result: fullText });
     } catch (err: any) {
       console.error(err);
       let errorMsg = "Đã có lỗi xảy ra khi kết nối với vũ trụ. Vui lòng thử lại.";

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Hash, Sparkles, RefreshCw, Loader2, History as HistoryIcon, Download } from 'lucide-react';
-import { ai, MODELS, SYSTEM_PROMPTS, safeGenerateContent, getCurrentContext } from '../lib/gemini';
+import { ai, MODELS, SYSTEM_PROMPTS, safeGenerateContent, safeGenerateContentStream, getCurrentContext } from '../lib/gemini';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { HistorySidebar } from '../components/HistorySidebar';
@@ -112,30 +112,51 @@ export const IChingPage: React.FC = () => {
 
   const analyzeHexagram = async (finalLines: number[]) => {
     startLoading('iching');
+    setResult(''); // Clear previous result
     try {
       const hexagramStr = finalLines.map(l => l === 1 ? 'Dương' : 'Âm').join(', ');
-      const prompt = `Tôi vừa gieo được quẻ Kinh Dịch với các hào từ dưới lên trên như sau: ${hexagramStr}. 
-      Câu hỏi của tôi: "${question}"
-      Giờ động tâm: ${startTime}
-      Hãy giải quẻ này. 
-      QUAN TRỌNG: Hãy trả về kết quả theo định dạng JSON có cấu trúc như sau:
-      {
-        "hexagramNumber": number (từ 1 đến 64 theo số thứ tự King Wen),
-        "hexagramName": "Tên quẻ (ví dụ: Thuần Càn)",
-        "interpretation": "Nội dung luận giải chi tiết bằng Markdown..."
-      }`;
+      
+      // Step 1: Get Hexagram Info (Fast JSON call)
+      const infoPrompt = `Tôi vừa gieo được quẻ Kinh Dịch với các hào từ dưới lên trên như sau: ${hexagramStr}. 
+      Hãy xác định số thứ tự quẻ (King Wen) và tên quẻ.
+      Trả về JSON: { "hexagramNumber": number, "hexagramName": "string" }`;
 
-      const response = await safeGenerateContent({
+      const infoResponse = await safeGenerateContent({
         model: MODELS.TEXT,
-        contents: [{ parts: [{ text: SYSTEM_PROMPTS.ICHING + "\n\n" + getCurrentContext() + "\n\n" + prompt }] }],
+        contents: [{ parts: [{ text: infoPrompt }] }],
         config: { responseMimeType: "application/json" }
       });
       
-      const resultTextRaw = response.text || "";
-      const data = extractJSON(resultTextRaw) || {};
-      const resultText = data.interpretation || "Không thể giải quẻ.";
-      const hNum = data.hexagramNumber || null;
-      const hName = data.hexagramName || null;
+      const infoData = extractJSON(infoResponse.text || "{}") || {};
+      const hNum = infoData.hexagramNumber || null;
+      const hName = infoData.hexagramName || null;
+
+      setHexNumber(hNum);
+      setHexName(hName);
+      updateState('iching', { hexNumber: hNum, hexName: hName });
+
+      // Generate AI Illustration in background
+      if (hNum && hName) {
+        generateIllustration(hNum, hName);
+      }
+
+      // Step 2: Stream Interpretation
+      const interpretationPrompt = `Tôi vừa gieo được quẻ Kinh Dịch: ${hName} (Quẻ số ${hNum}). 
+      Các hào: ${hexagramStr}. 
+      Câu hỏi của tôi: "${question}"
+      Giờ động tâm: ${startTime}
+      Hãy giải quẻ này một cách chi tiết và thông thái.`;
+
+      const stream = safeGenerateContentStream({
+        model: MODELS.TEXT,
+        contents: [{ parts: [{ text: SYSTEM_PROMPTS.ICHING + "\n\n" + getCurrentContext() + "\n\n" + interpretationPrompt }] }],
+      });
+
+      let fullText = '';
+      for await (const chunk of stream) {
+        fullText += chunk;
+        setResult(fullText);
+      }
 
       // Save to history
       saveHistory({
@@ -147,20 +168,15 @@ export const IChingPage: React.FC = () => {
           lines: finalLines,
           hexNumber: hNum,
           hexName: hName,
-          interpretation: resultText
+          interpretation: fullText
         }
       });
 
       finishLoading('iching', { 
-        result: resultText,
+        result: fullText,
         hexNumber: hNum,
         hexName: hName
       });
-
-      // Generate AI Illustration
-      if (hNum && hName) {
-        generateIllustration(hNum, hName);
-      }
     } catch (err: any) {
       console.error(err);
       let errorMsg = "Đã xảy ra lỗi khi giải quẻ. Vui lòng thử lại.";
